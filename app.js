@@ -295,19 +295,20 @@ function renderLatestGrid() {
   }
 
   grid.innerHTML = articles.map((n, i) => `
-    <div class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})">
+    <article class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})" itemscope itemtype="https://schema.org/NewsArticle">
       <div class="news-card-img-wrap">
-        <img class="news-card-img" src="${n.img}" alt="${n.title}" loading="lazy">
-        <span class="news-card-cat">${n.cat}</span>
+        <img class="news-card-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="400" height="240" itemprop="image">
+        <span class="news-card-cat" itemprop="articleSection">${n.cat}</span>
       </div>
       <div class="news-card-body">
-        <h3>${n.title}</h3>
+        <h3 itemprop="headline">${n.title}</h3>
+        <p style="display:none;" itemprop="description">${n.desc || n.title}</p>
         <div class="news-card-meta">
-          <span>🕒 ${n.time}</span>
+          <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
           <span>👁️ ${Math.floor(100 + n.id * 12)} वाचले</span>
         </div>
       </div>
-    </div>
+    </article>
   `).join('');
 }
 
@@ -326,14 +327,14 @@ function renderListContainer(containerId, items) {
   if (!el) return;
 
   el.innerHTML = items.map((n, i) => `
-    <div class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})">
-      <img class="list-news-img" src="${n.img}" alt="${n.title}" loading="lazy">
+    <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})" itemscope itemtype="https://schema.org/NewsArticle">
+      <img class="list-news-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="120" height="80" itemprop="image">
       <div class="list-news-body">
-        <span class="list-news-cat">${n.cat}</span>
-        <h3>${n.title}</h3>
-        <span class="list-news-time">${n.time}</span>
+        <span class="list-news-cat" itemprop="articleSection">${n.cat}</span>
+        <h3 itemprop="headline">${n.title}</h3>
+        <span class="list-news-time"><time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
       </div>
-    </div>
+    </article>
   `).join('');
 }
 
@@ -343,14 +344,16 @@ function renderVideoGrid() {
   if (!grid || !appState.news) return;
 
   grid.innerHTML = (appState.news.videos || []).map((v, i) => `
-    <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModal('${v.title}', '${v.dur}', '${v.img}')">
+    <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModal('${v.title}', '${v.dur}', '${v.img}')" itemscope itemtype="https://schema.org/VideoObject">
       <div class="video-thumb-wrap">
-        <img class="video-thumb" src="${v.img}" alt="${v.title}" loading="lazy">
+        <img class="video-thumb" src="${v.img}" alt="${v.title} - न्यू महाराष्ट्र गर्जना व्हिडिओ" loading="lazy" width="360" height="200" itemprop="thumbnailUrl">
         <div class="play-btn">▶</div>
-        <span class="video-duration">${v.dur}</span>
+        <span class="video-duration" itemprop="duration">${v.dur}</span>
       </div>
       <div class="video-body">
-        <h3>${v.title}</h3>
+        <h3 itemprop="name">${v.title}</h3>
+        <meta itemprop="description" content="न्यू महाराष्ट्र गर्जना विशेष व्हिडिओ बुलेटिन: ${v.title}">
+        <meta itemprop="uploadDate" content="2026-08-10T10:00:00+05:30">
         <span>न्यू महाराष्ट्र गर्जना व्हिडिओ बुलेटिन</span>
       </div>
     </div>
@@ -363,13 +366,171 @@ function renderPhotoGrid() {
   if (!grid || !appState.news) return;
 
   grid.innerHTML = (appState.news.photos || []).map((p, i) => `
-    <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModal('${p.caption}', '${p.img}')">
-      <img src="${p.img}" alt="${p.caption}" loading="lazy">
+    <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModal('${p.caption}', '${p.img}')" itemscope itemtype="https://schema.org/ImageObject">
+      <img src="${p.img}" alt="${p.caption} - न्यू महाराष्ट्र गर्जना फोटो" loading="lazy" width="400" height="260" itemprop="contentUrl">
       <div class="photo-overlay">
-        <p>${p.caption}</p>
+        <p itemprop="caption">${p.caption}</p>
       </div>
     </div>
   `).join('');
+}
+
+// ── SEO METADATA & SCHEMA MANAGEMENT ──
+
+const DEFAULT_SEO = {
+  title: "न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana) | ताज्या मराठी बातम्या, राजकारण, चालू घडामोडी & लाईव्ह अपडेट्स",
+  desc: "महाराष्ट्रातील अग्रगण्य मराठी डिजिटल वृत्तसेवा. ताज्या बातम्या, राजकारण, मुंबई, पुणे, देश-विदेश, क्रीडा, मनोरंजन, व्यापार, तंत्रज्ञान आणि थेट लाईव्ह अपडेट्स.",
+  canonical: "https://newmaharashtragarjana.com/",
+  image: "https://picsum.photos/1200/630?random=101"
+};
+
+const CATEGORY_SEO = {
+  'सर्व': {
+    title: "न्यू महाराष्ट्र गर्जना | ताज्या मराठी बातम्या, राजकारण & चालू घडामोडी",
+    desc: "महाराष्ट्रातील अग्रगण्य मराठी डिजिटल वृत्तसेवा. ताज्या बातम्या, राजकारण, मुंबई, पुणे, देश-विदेश, क्रीडा, मनोरंजन, व्यापार आणि लाईव्ह अपडेट्स."
+  },
+  'महाराष्ट्र': {
+    title: "महाराष्ट्र घडामोडी - ताज्या बातम्या, विकास योजना व विश्लेषण | न्यू महाराष्ट्र गर्जना",
+    desc: "महाराष्ट्रातील ग्रामीण, शहरी, प्रशासकीय व सामाजिक घडामोडींच्या ताज्या बातम्या, सरकारी योजना आणि सर्वसमावेशक विश्लेषण."
+  },
+  'राजकारण': {
+    title: "महाराष्ट्र राजकारण - राजकीय बातम्या, विधानसभा व सत्तासंघर्ष | न्यू महाराष्ट्र गर्जना",
+    desc: "महाराष्ट्र विधानसभा, पक्षीय घडामोडी, सत्तासंघर्ष, मंत्रिमंडळ निर्णय, विरोधकांचे आक्षेप व राजकीय विश्लेषणाचे ताजे अपडेट्स."
+  },
+  'मुंबई': {
+    title: "मुंबई बातम्या - लोकल ट्रेन, महापालिका, वाहतूक व घडामोडी | न्यू महाराष्ट्र गर्जना",
+    desc: "मुंबई, ठाणे, नवी मुंबई परिसरातील ताज्या बातम्या, लोकल ट्रेन, कोस्टल रोड, विकासकामे आणि पालिकेच्या ताज्या घडामोडी."
+  },
+  'पुणे': {
+    title: "पुणे बातम्या - पिंपरी-चिंचवड, मेट्रो, आयटी व शैक्षणिक अपडेट्स | न्यू महाराष्ट्र गर्जना",
+    desc: "पुणे शहर, पिंपरी-चिंचवड आणि जिल्हाभरातील ताज्या घडामोडी, मेट्रो मार्ग, वाहतूक, आयटी पार्क व शैक्षणिक क्षेत्रातील महत्त्वाच्या बातम्या."
+  },
+  'देश': {
+    title: "देश घडामोडी - राष्ट्रीय बातम्या, केंद्र सरकार व संसद निर्णय | न्यू महाराष्ट्र गर्जना",
+    desc: "भारतातील प्रमुख राष्ट्रीय बातम्या, केंद्र सरकारची धोरणे, संसद अधिवेशन, संरक्षण आणि चालू घडामोडींचे विश्वासार्ह वार्तांकन."
+  },
+  'जग': {
+    title: "आंतरराष्ट्रीय बातम्या - जागतिक घडामोडी, अर्थकारण व तंत्रज्ञान | न्यू महाराष्ट्र गर्जना",
+    desc: "जगातील महत्त्वाच्या आंतरराष्ट्रीय घडामोडी, युद्ध, जागतिक राजकारण, अर्थकारण आणि तंत्रज्ञान क्षेत्रातील घडामोडींचा वेध."
+  },
+  'क्रीडा': {
+    title: "क्रीडा बातम्या - क्रिकेट, आयपीएल, ऑलिम्पिक व क्रीडा जगत | न्यू महाराष्ट्र गर्जना",
+    desc: "भारतीय क्रिकेट संघ, आयपीएल, कसोटी सामने, ऑलिम्पिक आणि राष्ट्रीय-आंतरराष्ट्रीय क्रीडा स्पर्धांचे सविस्तर वार्तांकन व धावफलक."
+  },
+  'मनोरंजन': {
+    title: "मनोरंजन बातम्या - बॉलीवूड, मराठी सिनेमा, मालिका व मुलाखती | न्यू महाराष्ट्र गर्जना",
+    desc: "मराठी चित्रपट, बॉलीवूड, वेब सिरीज, नाटक, सेलिब्रेटी गॉसिप्स आणि मनोरंजन विश्वातील खमंग बातम्या व विशेष मुलाखती."
+  },
+  'व्यापार': {
+    title: "व्यापार बातम्या - शेअर बाजार, सेन्सेक्स, सोने-चांदी भाव व अर्थकारण | न्यू महाराष्ट्र गर्जना",
+    desc: "शेअर बाजार, सेन्सेक्स, निफ्टी, सोने-चांदीचे ताजे दर, क्रिप्टो, बँकिंग आणि उद्योग क्षेत्रातील ताज्या घडामोडी व तज्ज्ञ विश्लेषण."
+  },
+  'आरोग्य': {
+    title: "आरोग्य व जीवनशैली - हेल्थ टिप्स, आहार, योग व तज्ज्ञांचा सल्ला | न्यू महाराष्ट्र गर्जना",
+    desc: "आरोग्य, आहार, योग, व्यायाम, मानसिक स्वास्थ्य, आयुर्वेद व निरोगी जीवनशैलीसाठी तज्ज्ञ डॉक्टरांचे प्रामाणिक मार्गदर्शन."
+  },
+  'तंत्रज्ञान': {
+    title: "तंत्रज्ञान बातम्या - स्मार्टफोन, एआय, गॅजेट्स व सायबर सुरक्षा | न्यू महाराष्ट्र गर्जना",
+    desc: "स्मार्टफोन रिव्ह्यू, गॅजेट्स, सायबर सुरक्षा, कृत्रिम बुद्धिमत्ता (AI) आणि नव्या तंत्रज्ञानाचा सखोल आढावा."
+  },
+  'व्हिडिओ': {
+    title: "व्हिडिओ बुलेटिन - विशेष बातम्या व थेट वार्तांकन | न्यू महाराष्ट्र गर्जना",
+    desc: "न्यू महाराष्ट्र गर्जनाचे विशेष व्हिडिओ बुलेटिन, ग्राउंड रिपोर्टिंग, मुलाखती आणि थेट व्हिडिओ वार्तांकन."
+  },
+  'फोटो': {
+    title: "विशेष फोटो गॅलरी - क्षणचित्रे, पर्यटन व घडामोडी | न्यू महाराष्ट्र गर्जना",
+    desc: "महाराष्ट्र व देशातील ऐतिहासिक, राजकीय, सांस्कृतिक व क्रीडा घटनांची विहंगम छायाचित्रे व फोटो गॅलरी."
+  },
+  'थेट': {
+    title: "थेट लाईव्ह अपडेट्स - प्रत्येक मिनिटाची ब्रेकिंग न्यूज | न्यू महाराष्ट्र गर्जना",
+    desc: "महाराष्ट्रातील महत्त्वाच्या घडामोडींचे थेट प्रत्येक मिनिटाचे वेगवान लाईव्ह कव्हरेज आणि ब्रेकिंग अपडेट्स."
+  }
+};
+
+function updateMetaTag(name, content) {
+  let el = document.querySelector(`meta[name="${name}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('name', name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function updateMetaProperty(property, content) {
+  let el = document.querySelector(`meta[property="${property}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('property', property);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function updateCanonical(url) {
+  let el = document.querySelector('link[rel="canonical"]');
+  if (el) el.setAttribute('href', url);
+}
+
+function setSEOMetadata(title, desc, url, image) {
+  document.title = title;
+  updateMetaTag('description', desc);
+  updateMetaProperty('og:title', title);
+  updateMetaProperty('og:description', desc);
+  if (url) {
+    updateMetaProperty('og:url', url);
+    updateCanonical(url);
+  }
+  if (image) {
+    updateMetaProperty('og:image', image);
+    updateMetaTag('twitter:image', image);
+  }
+  updateMetaTag('twitter:title', title);
+  updateMetaTag('twitter:description', desc);
+}
+
+function injectDynamicNewsArticleSchema(article) {
+  let script = document.getElementById('dynamicArticleSchema');
+  if (!script) {
+    script = document.createElement('script');
+    script.id = 'dynamicArticleSchema';
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://newmaharashtragarjana.com/#article-" + article.id
+    },
+    "headline": article.title,
+    "description": article.desc || article.title,
+    "image": [article.img],
+    "datePublished": "2026-08-10T10:30:00+05:30",
+    "dateModified": "2026-08-10T10:30:00+05:30",
+    "articleSection": article.cat || "महाराष्ट्र",
+    "inLanguage": "mr",
+    "author": {
+      "@type": "Person",
+      "name": article.author || "न्यू महाराष्ट्र गर्जना प्रतिनिधी"
+    },
+    "publisher": {
+      "@type": "NewsMediaOrganization",
+      "name": "न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana)",
+      "url": "https://newmaharashtragarjana.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://newmaharashtragarjana.com/favicon.ico"
+      }
+    }
+  };
+  script.textContent = JSON.stringify(schema, null, 2);
+}
+
+function removeDynamicNewsArticleSchema() {
+  const script = document.getElementById('dynamicArticleSchema');
+  if (script) script.remove();
 }
 
 // ── CATEGORY FILTERING SYSTEM ──
@@ -388,6 +549,18 @@ function filterCategory(catName, event) {
       item.classList.remove('active');
     }
   });
+
+  // Update SEO for this category
+  const seo = CATEGORY_SEO[catName] || DEFAULT_SEO;
+  const hashVal = catName === 'सर्व' ? '' : `#${catName}`;
+  setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${hashVal}`);
+  try {
+    if (catName !== 'सर्व') {
+      history.replaceState(null, '', hashVal);
+    } else if (window.location.hash && !window.location.hash.startsWith('#article-')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  } catch (e) {}
 
   // Show/Hide section blocks if specific category selected
   const heroSection = document.getElementById('heroSection');
@@ -430,8 +603,8 @@ function updateCategoryStatusBar() {
 
   if (appState.activeCategory !== 'सर्व' || appState.searchTerm !== '') {
     bar.style.display = 'block';
-    const nameEl = document.getElementById('activeCategoryName');
-    const countEl = document.getElementById('activeCategoryCount');
+    const nameEl = document.getElementById('currentCategoryText') || document.getElementById('activeCategoryName');
+    const countEl = document.getElementById('categoryCountBadge') || document.getElementById('activeCategoryCount');
     
     if (nameEl) nameEl.textContent = appState.searchTerm ? `शोध: "${appState.searchTerm}"` : appState.activeCategory;
     
@@ -484,6 +657,18 @@ function openArticle(id) {
     };
   }
 
+  // Update SEO for this individual article
+  setSEOMetadata(
+    `${article.title} - न्यू महाराष्ट्र गर्जना | New Maharashtra Garjana`,
+    article.desc || article.title,
+    `https://newmaharashtragarjana.com/#article-${article.id}`,
+    article.img
+  );
+  injectDynamicNewsArticleSchema(article);
+  try {
+    history.pushState({ articleId: id }, '', `#article-${id}`);
+  } catch (e) {}
+
   const modal = document.getElementById('articleModal');
   const container = document.getElementById('articleReaderContent');
   if (!modal || !container) return;
@@ -491,9 +676,10 @@ function openArticle(id) {
   const articleComments = appState.commentsMap[id] || [];
 
   container.innerHTML = `
-    <div class="article-header">
-      <span class="article-cat-badge">${article.cat}</span>
-      <h1 class="article-main-title" id="articleReaderTitle">${article.title}</h1>
+    <article class="article-reader-wrapper" itemscope itemtype="https://schema.org/NewsArticle">
+      <div class="article-header">
+        <span class="article-cat-badge" itemprop="articleSection">${article.cat}</span>
+        <h1 class="article-main-title" id="articleReaderTitle" itemprop="headline">${article.title}</h1>
       
       <div class="article-meta-bar">
         <div class="article-author-info">
@@ -559,6 +745,7 @@ function openArticle(id) {
         ${renderCommentsHTML(articleComments)}
       </div>
     </div>
+    </article>
   `;
 
   modal.classList.add('open');
@@ -569,6 +756,20 @@ function closeArticleModal() {
   const modal = document.getElementById('articleModal');
   if (modal) modal.classList.remove('open');
   document.body.style.overflow = 'auto';
+
+  // Restore Default / Category SEO
+  removeDynamicNewsArticleSchema();
+  if (CATEGORY_SEO[appState.activeCategory]) {
+    const seo = CATEGORY_SEO[appState.activeCategory];
+    setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
+  } else {
+    setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
+  }
+  try {
+    if (window.location.hash.startsWith('#article-')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  } catch (e) {}
 
   // Stop speech synthesis if playing
   if ('speechSynthesis' in window) {
@@ -1664,8 +1865,171 @@ function handleNewsletterSubmit(event) {
   }
 }
 
-function openStaticInfo(title) {
-  alert(`न्यू महाराष्ट्र गर्जना - ${title}\n\nआम्ही महाराष्ट्रातील सत्य व विश्वासार्ह घडामोडी जनतेपर्यंत पोहोचवण्यासाठी बांधील आहोत.\n\nसंपादक: श्री. उमेश पाटील\n📞 मोबाईल / व्हॉट्सॲप: 8530664576\n✉️ ईमेल: maharashtragarjanews24@gmail.com\n📍 पत्ता: S/O Bharat Patil, 10/1 Flat no 504, Sai Nilanjan Morya Park, Gali no 5, Pimple Gurav, Pune - 411061`);
+function openStaticInfo(topic) {
+  const modal = document.getElementById('staticInfoModal');
+  const titleEl = document.getElementById('staticInfoTitle');
+  const subtitleEl = document.getElementById('staticInfoSubtitle');
+  const iconEl = document.getElementById('staticInfoIcon');
+  const bodyEl = document.getElementById('staticInfoBody');
+  if (!modal || !bodyEl) return;
+
+  let seoTitle = "";
+  let seoDesc = "";
+
+  if (topic === 'आमच्याबद्दल') {
+    if (iconEl) iconEl.textContent = '📰';
+    if (titleEl) titleEl.textContent = 'आमच्याबद्दल (About Us)';
+    if (subtitleEl) subtitleEl.textContent = 'न्यू महाराष्ट्र गर्जना - सत्य, निर्भीक आणि निःपक्ष पत्रकारितेचा विश्वासार्ह आवाज';
+    seoTitle = 'आमच्याबद्दल - न्यू महाराष्ट्र गर्जना | About New Maharashtra Garjana';
+    seoDesc = 'न्यू महाराष्ट्र गर्जना हे महाराष्ट्रातील अग्रगण्य डिजिटल वृत्तपत्र असून संपादक उमेश भरत पाटील यांच्या नेतृत्वाखाली निर्भीक व निष्पक्ष पत्रकारिता करते.';
+    bodyEl.innerHTML = `
+      <h4>🏛️ न्यू महाराष्ट्र गर्जना डिजिटल मीडिया परिचय</h4>
+      <p><strong>न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana)</strong> हे महाराष्ट्रातील अग्रगण्य, विश्वासार्ह व निर्भीक डिजिटल वृत्तपत्र आणि न्यूज पोर्टल आहे. आधुनिक डिजिटल युगात राज्यातील प्रत्येक नागरिकापर्यंत सत्य, अचूक आणि निःपक्षपाती बातम्या सर्वात वेगाने पोहोचवणे हे आमचे प्रमुख उद्दिष्ट आहे.</p>
+      
+      <h4>🎯 आमचे ध्येय व मूल्ये (Our Mission & Values)</h4>
+      <ul>
+        <li><strong>सत्य आणि निर्भीकता:</strong> कोणत्याही राजकीय अथवा व्यावसायिक दबावाशिवाय केवळ लोकहिताचे सत्य जनतेसमोर मांडणे.</li>
+        <li><strong>सर्वसमावेशक वार्तांकन:</strong> शेतकरी, कष्टकरी, युवक, महिला आणि वंचित घटकांच्या प्रश्नांना मुख्य प्रवाहात अग्रस्थान देणे.</li>
+        <li><strong>जलद व अचूक माहिती:</strong> फेक न्यूज आणि अफवांना आळा घालून पडताळणी केलेल्या अधिकृत बातम्या देणे.</li>
+        <li><strong>डिजिटल क्रांती:</strong> मोबाईल, वेब, व्हिडिओ व सोशल मीडियाच्या माध्यमातून सहज व सुलभ मराठी वाचन अनुभव देणे.</li>
+      </ul>
+
+      <h4>👤 संपादकीय नेतृत्व</h4>
+      <div class="static-info-card-box">
+        <p><strong>मुख्य संपादक व संस्थापक:</strong> श्री. उमेश भरत पाटील (Umesh Bharat Patil)</p>
+        <p><strong>वार्तांकन कार्यक्षेत्र:</strong> महाराष्ट्र राज्यातील सर्व ३६ जिल्हे, मुंबई-पुणे मेट्रोपॉलिटन रिजन, देश व आंतरराष्ट्रीय घडामोडी.</p>
+      </div>
+
+      <h4>🤝 वाचक व समाज सहभाग</h4>
+      <p>आम्ही केवळ बातम्या देणारे माध्यम नसून जनतेचा बुलंद आवाज आहोत. आपल्या परिसरातील समस्या, विकासात्मक उपक्रम अथवा सामाजिक प्रश्न आमच्यापर्यंत थेट पोहोचवण्यासाठी आमचे व्यासपीठ २४ तास खुले आहे.</p>
+    `;
+  } else if (topic === 'संपर्क') {
+    if (iconEl) iconEl.textContent = '📞';
+    if (titleEl) titleEl.textContent = 'संपर्क साधा (Contact Us)';
+    if (subtitleEl) subtitleEl.textContent = 'न्यू महाराष्ट्र गर्जना संपादकीय कार्यालय व २४x७ मदत कक्ष';
+    seoTitle = 'संपर्क साधा - न्यू महाराष्ट्र गर्जना | Contact Us & 24x7 Helpline';
+    seoDesc = 'न्यू महाराष्ट्र गर्जनाशी संपर्क साधा: फोन/व्हॉट्सॲप: 8530664576, ईमेल: maharashtragarjanews24@gmail.com, पिंपळे गुरव, पुणे.';
+    bodyEl.innerHTML = `
+      <h4>📍 मुख्य कार्यालय पत्ता (Headquarters)</h4>
+      <div class="static-info-card-box">
+        <p><strong>न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana)</strong></p>
+        <p>S/O Bharat Patil, 10/1 Flat no 504, Sai Nilanjan Morya Park, Gali no 5, Pimple Gurav, Pune - 411061, Maharashtra, India</p>
+      </div>
+
+      <h4>📞 थेट संपर्क व २४x७ व्हॉट्सॲप हेल्पलाइन</h4>
+      <p>बातम्या पाठवण्यासाठी, जाहिरातींसाठी अथवा कोणत्याही माहितीसाठी खालील क्रमांकावर संपर्क साधा:</p>
+      
+      <div class="static-info-card-box">
+        <p><strong>मोबाईल / व्हॉट्सॲप:</strong> <a href="tel:+918530664576" style="color:var(--red); font-weight:700;">+91 8530664576</a></p>
+        <p><strong>अधिकृत ईमेल:</strong> <a href="mailto:maharashtragarjanews24@gmail.com" style="color:var(--red); font-weight:700;">maharashtragarjanews24@gmail.com</a></p>
+        <p><strong>संपादक:</strong> श्री. उमेश भरत पाटील</p>
+      </div>
+
+      <div class="static-info-quick-actions">
+        <a href="tel:+918530664576" class="static-quick-btn static-btn-phone">📞 थेट कॉल करा</a>
+        <a href="https://wa.me/918530664576?text=नमस्कार%20न्यू%20महाराष्ट्र%20गर्जना" target="_blank" rel="noopener" class="static-quick-btn static-btn-whatsapp">💬 व्हॉट्सॲप करा</a>
+        <a href="mailto:maharashtragarjanews24@gmail.com" class="static-quick-btn static-btn-email">✉️ ईमेल पाठवा</a>
+      </div>
+
+      <h4>🌐 अधिकृत सोशल मीडिया चॅनेल्स</h4>
+      <ul>
+        <li><strong>फेसबुक:</strong> <a href="https://www.facebook.com/share/1BwdzGiPf8/" target="_blank" rel="noopener">Facebook Page</a></li>
+        <li><strong>यूट्यूब:</strong> <a href="https://youtube.com/@umeshbharatpatil?si=Ld0Jq3ZN-EGQPEDI" target="_blank" rel="noopener">YouTube (@umeshbharatpatil)</a></li>
+        <li><strong>इन्स्टाग्राम:</strong> <a href="https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==" target="_blank" rel="noopener">Instagram (@newmaharashtragarjana)</a></li>
+      </ul>
+    `;
+  } else if (topic === 'जाहिरात') {
+    if (iconEl) iconEl.textContent = '📢';
+    if (titleEl) titleEl.textContent = 'जाहिरात दरपत्रक & मीडिया किट (Advertise)';
+    if (subtitleEl) subtitleEl.textContent = 'आपला ब्रँड व व्यवसाय महाराष्ट्रातील लाखो वाचकांपर्यंत पोहोचवा';
+    seoTitle = 'जाहिरात दरपत्रक - न्यू महाराष्ट्र गर्जना | Advertise With Us Media Kit';
+    seoDesc = 'न्यू महाराष्ट्र गर्जनावर बॅनर जाहिराती, प्रायोजित बातम्या आणि सोशल मीडिया प्रमोशनसाठी संपर्क साधा.';
+    bodyEl.innerHTML = `
+      <h4>🚀 न्यू महाराष्ट्र गर्जना डिजिटल पोहोच (Reach & Impact)</h4>
+      <p>न्यू महाराष्ट्र गर्जना हे महाराष्ट्रातील वेगाने वाढणारे मराठी डिजिटल व्यासपीठ असून येथे दरमहा लाखो सक्रिय वाचक ताज्या घडामोडी वाचण्यासाठी येतात.</p>
+      
+      <h4>📊 जाहिरात स्वरूप (Advertising Formats)</h4>
+      <ul>
+        <li><strong>टॉप हेडर बॅनर:</strong> संकेतस्थळाच्या शीर्षस्थानी सर्वाधिक नजरेस पडणारे स्थान.</li>
+        <li><strong>इन-आर्टिकल बॅनर:</strong> प्रत्येक बातमीच्या मजकुरामध्ये वाचनाच्या ओघात प्रदर्शित होणारी जाहिरात.</li>
+        <li><strong>प्रायोजित लेख (Sponsored Stories):</strong> आपल्या प्रॉडक्ट अथवा सेवेची सविस्तर माहिती देणारा समर्पित लेख.</li>
+        <li><strong>सोशल मीडिया प्रमोशन:</strong> फेसबुक, यूट्यूब व इन्स्टाग्राम हँडल्सवर विशेष व्हिडिओ व पोस्ट प्रसिद्धी.</li>
+      </ul>
+
+      <h4>💼 जाहिरात नोंदणी व विशेष पॅकेजेससाठी संपर्क</h4>
+      <div class="static-info-card-box">
+        <p><strong>जाहिरात विभाग प्रमुख:</strong> श्री. उमेश भरत पाटील</p>
+        <p><strong>थेट फोन / व्हॉट्सॲप:</strong> +91 8530664576</p>
+        <p><strong>जाहिरात ईमेल:</strong> maharashtragarjanews24@gmail.com</p>
+      </div>
+      <div class="static-info-quick-actions">
+        <a href="tel:+918530664576" class="static-quick-btn static-btn-phone">📞 जाहिरातीसाठी कॉल करा</a>
+        <a href="https://wa.me/918530664576?text=मला%20न्यू%20महाराष्ट्र%20गर्जनावर%20जाहिरात%20करायची%20आहे" target="_blank" rel="noopener" class="static-quick-btn static-btn-whatsapp">💬 व्हॉट्सॲप कोटेशन</a>
+      </div>
+    `;
+  } else if (topic === 'गोपनीयता') {
+    if (iconEl) iconEl.textContent = '🔒';
+    if (titleEl) titleEl.textContent = 'गोपनीयता धोरण (Privacy Policy)';
+    if (subtitleEl) subtitleEl.textContent = 'वाचकांच्या डेटाचे रक्षण व पारदर्शक धोरण';
+    seoTitle = 'गोपनीयता धोरण - न्यू महाराष्ट्र गर्जना | Privacy Policy';
+    seoDesc = 'न्यू महाराष्ट्र गर्जनाचे गोपनीयता धोरण (Privacy Policy). वापरकर्त्यांच्या गोपनीयतेचे व डेटाचे संपूर्ण संरक्षण.';
+    bodyEl.innerHTML = `
+      <h4>🛡️ गोपनीयता बांधिलकी</h4>
+      <p><strong>न्यू महाराष्ट्र गर्जना</strong> आपल्या सर्व वाचकांच्या आणि वापरकर्त्यांच्या वैयक्तिक गोपनीयतेचा आदर करते. हे धोरण आम्ही कोणती माहिती संकलित करतो आणि ती कशी सुरक्षित ठेवतो हे स्पष्ट करते.</p>
+
+      <h4>📋 माहिती संकलन व वापर</h4>
+      <ul>
+        <li><strong>वाचन व नेव्हिगेशन:</strong> आमचे वृत्तपत्र वाचण्यासाठी कोणत्याही वैयक्तिक नोंदणीची सक्ती नाही.</li>
+        <li><strong>प्रतिक्रिया (Comments):</strong> जेव्हा आपण बातमीवर प्रतिक्रिया देता, तेव्हा आपले नाव आणि मत सार्वजनिक दर्शवले जाते.</li>
+        <li><strong>न्यूजलेटर व सूचना:</strong> आपण स्वेच्छेने व्हॉट्सॲप नंबर अथवा ईमेल सबस्क्राईब केल्यास केवळ ताज्या बातम्या पाठवण्यासाठी त्याचा वापर केला जातो. आम्ही कधीही आपला डेटा त्रयस्थ पक्षाला विकत नाही.</li>
+      </ul>
+
+      <h4>🍪 कुकीज धोरण (Cookies Policy)</h4>
+      <p>वाचन अनुभव सुलभ व जलद करण्यासाठी आणि भाषा निवड (उदा. गुगल ट्रान्सलेट) जतन करण्यासाठी कुकीजचा वापर होतो. आपण आपल्या ब्राउझर सेटिंग्जमधून कुकीज नियंत्रित करू शकता.</p>
+
+      <h4>⚖️ संपर्क व तक्रार निवारण</h4>
+      <p>आपल्या गोपनीयतेबाबत काही प्रश्न असल्यास maharashtragarjanews24@gmail.com वर संपर्क साधावा.</p>
+    `;
+  } else {
+    if (iconEl) iconEl.textContent = '📜';
+    if (titleEl) titleEl.textContent = 'नियम व अटी (Terms of Service)';
+    if (subtitleEl) subtitleEl.textContent = 'न्यू महाराष्ट्र गर्जना डिजिटल संकेतस्थळ वापराचे नियम व कायदेशीर अटी';
+    seoTitle = 'नियम व अटी - न्यू महाराष्ट्र गर्जना | Terms and Conditions';
+    seoDesc = 'न्यू महाराष्ट्र गर्जनाचे नियम व अटी (Terms of Service) आणि संपादकीय आचारसंहिता.';
+    bodyEl.innerHTML = `
+      <h4>📜 संकेतस्थळ वापराचे नियम</h4>
+      <p>न्यू महाराष्ट्र गर्जना या संकेतस्थळाचा वापर करून आपण खालील अटी व शर्ती मान्य करत आहात:</p>
+
+      <h4>©️ बौद्धिक संपदा व कॉपीराइट</h4>
+      <p>या संकेतस्थळावरील सर्व बातम्या, मथळे, लेख, छायाचित्रे, व्हिडिओ आणि लोगो हे न्यू महाराष्ट्र गर्जनाचे अधिकृत स्वामित्व हक्क आहेत. संपादकांच्या लेखी परवानगीशिवाय व्यावसायिक कारणांसाठी मजकूर कॉपी करणे किंवा पुनर्प्रकाशित करणे कायद्याने गुन्हा आहे.</p>
+
+      <h4>💬 वाचक प्रतिक्रिया आचारसंहिता</h4>
+      <ul>
+        <li>कोणत्याही व्यक्ती, धर्म, जात किंवा समूहाचा अपमान करणारी भाषा वापरण्यास सक्त मनाई आहे.</li>
+        <li>द्वेषमूलक भाषण, असभ्य शब्द अथवा बदनामीकारक वक्तव्ये त्वरित हटवली जातील.</li>
+      </ul>
+
+      <h4>⚖️ कायदेशीर कार्यक्षेत्र</h4>
+      <p>संकेतस्थळाशी संबंधित सर्व वाद अथवा कायदेशीर बाबी केवळ पुणे (महाराष्ट्र) न्यायालयाच्या अधिकारकक्षेत येतील.</p>
+    `;
+  }
+
+  setSEOMetadata(seoTitle, seoDesc, `https://newmaharashtragarjana.com/#${topic}`);
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStaticInfoModal() {
+  const modal = document.getElementById('staticInfoModal');
+  if (modal) modal.classList.remove('open');
+  document.body.style.overflow = 'auto';
+
+  if (CATEGORY_SEO[appState.activeCategory]) {
+    const seo = CATEGORY_SEO[appState.activeCategory];
+    setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
+  } else {
+    setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
+  }
 }
 
 // ── INITIALIZATION ──
@@ -1769,6 +2133,28 @@ document.addEventListener('DOMContentLoaded', () => {
       translatePageLanguage(savedLang, true);
     }, 500);
   }
+
+  // URL Hash Deep-Linking for Articles, Categories, and Static Info Pages
+  function handleUrlHash() {
+    const hash = window.location.hash;
+    if (!hash) return;
+    if (hash.startsWith('#article-')) {
+      const artId = parseInt(hash.replace('#article-', ''), 10);
+      if (artId) {
+        setTimeout(() => openArticle(artId), 250);
+      }
+    } else if (['#आमच्याबद्दल', '#संपर्क', '#जाहिरात', '#गोपनीयता', '#अटी'].includes(hash)) {
+      const topic = decodeURIComponent(hash.replace('#', ''));
+      setTimeout(() => openStaticInfo(topic), 250);
+    } else {
+      const catDecoded = decodeURIComponent(hash.replace('#', ''));
+      if (CATEGORY_SEO[catDecoded]) {
+        filterCategory(catDecoded);
+      }
+    }
+  }
+  handleUrlHash();
+  window.addEventListener('hashchange', handleUrlHash);
 });
 
 // ── MARATHI CALLIGRAPHY FONT SWITCHER ──

@@ -1,0 +1,22 @@
+# Robots.txt for New Maharashtra Garjana (न्यू महाराष्ट्र गर्जना)
+# Website: https://newmaharashtragarjana.com/
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+Disallow: /tmp/
+
+# Crawl-delay for optimal server performance
+Crawl-delay: 1
+
+# Google, Bing, Yahoo News Crawlers
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-News
+Allow: /
+User-agent: Bingbot
+Allow: /
+
+# Sitemap Location
+Sitemap: https://newmaharashtragarjana.com/sitemap.xml

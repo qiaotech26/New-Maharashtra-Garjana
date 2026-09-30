@@ -3951,3 +3951,134 @@ body {
     font-size: 0.88rem;
   }
 }
+
+/* ── STATIC INFO MODAL STYLES (SEO & USER INFO PAGES) ── */
+.static-info-container {
+  max-width: 720px;
+  width: 95%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.static-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 100%);
+  color: var(--white);
+  border-bottom: 3px solid var(--gold);
+}
+
+.static-info-header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.static-info-icon {
+  font-size: 2rem;
+  background: rgba(255,255,255,0.15);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.static-info-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--white);
+}
+
+.static-info-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.85);
+  margin: 3px 0 0;
+}
+
+.static-info-body {
+  padding: 24px;
+  overflow-y: auto;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--dark);
+}
+
+.static-info-body h4 {
+  color: var(--red);
+  font-size: 1.15rem;
+  margin: 18px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.static-info-body h4:first-child {
+  margin-top: 0;
+}
+
+.static-info-body p {
+  margin-bottom: 12px;
+  color: #334155;
+}
+
+.static-info-body ul {
+  padding-left: 20px;
+  margin-bottom: 14px;
+}
+
+.static-info-body li {
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.static-info-card-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-left: 4px solid var(--red);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 14px 0;
+}
+
+.static-info-quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.static-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--white);
+  transition: transform 0.2s;
+}
+
+.static-quick-btn:hover {
+  transform: translateY(-2px);
+}
+
+.static-btn-phone { background: #2563EB; }
+.static-btn-whatsapp { background: #22C55E; }
+.static-btn-email { background: var(--red); }
+
+.static-info-footer {
+  padding: 14px 24px;
+  background: #F1F5F9;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: flex-end;
+}
