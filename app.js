@@ -847,60 +847,34 @@ function shareArticle(platform, id) {
   }
 
   const title = article?.title || document.getElementById('articleReaderTitle')?.textContent || 'न्यू महाराष्ट्र गर्जना बातमी';
-  let imgUrl = article?.img || '';
-  const desc = article?.desc || article?.caption || '';
 
-  // If the image is a base64 data:image, upload it first to obtain a public URL for WhatsApp thumbnail
-  if (imgUrl && imgUrl.startsWith('data:image')) {
-    showToast('☁️ व्हॉट्सॲप थंबनेल तयार होत आहे, कृपया १ सेकंद थांबा...', 'info');
-    fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: imgUrl })
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res && res.url) {
-        if (article) {
-          article.img = res.url;
-          saveStateToStorage();
-        }
-        imgUrl = res.url;
-      }
-      executeSocialShare(platform, id, title, imgUrl, desc);
-    })
-    .catch(() => {
-      executeSocialShare(platform, id, title, '', desc);
-    });
-    return;
+  // Fire-and-forget sync to server so WhatsApp preview server always has the latest thumbnail
+  if (article) {
+    try {
+      fetch('/api/sync-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: article.id,
+          title: article.title,
+          img: article.img,
+          desc: article.desc || article.caption || ''
+        })
+      }).catch(() => {});
+    } catch (e) {}
   }
 
-  executeSocialShare(platform, id, title, imgUrl, desc);
-}
-
-function executeSocialShare(platform, id, title, imgUrl, desc) {
+  // Construct short, clean, professional URL (no vast query strings)
   let origin = window.location.origin;
   if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
     origin = 'https://www.newmaharashtragarjana.com';
   }
 
-  // Format absolute image URL for WhatsApp scraper
-  let absoluteImg = imgUrl;
-  if (absoluteImg && !absoluteImg.startsWith('http://') && !absoluteImg.startsWith('https://')) {
-    absoluteImg = `${origin}${absoluteImg.startsWith('/') ? absoluteImg : '/' + absoluteImg}`;
-  }
-
-  // Construct URL for /share endpoint with metadata query params so WhatsApp crawler gets exact image
-  const shareParams = new URLSearchParams();
-  shareParams.set('id', id);
-  if (title) shareParams.set('title', title);
-  if (absoluteImg && !absoluteImg.startsWith('data:')) shareParams.set('img', absoluteImg);
-  if (desc) shareParams.set('desc', desc.slice(0, 250));
-
-  const shareUrl = `${origin}/share?${shareParams.toString()}`;
+  const shareUrl = `${origin}/article/${id}`;
 
   if (platform === 'whatsapp') {
     const text = encodeURIComponent(`*न्यू महाराष्ट्र गर्जना* - ${title}\n\nसविस्तर वाचा: ${shareUrl}`);
+    // Direct synchronous window.open - NEVER blocked by browser popup blockers!
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   } else if (platform === 'facebook') {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');

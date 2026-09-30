@@ -25,6 +25,10 @@
     {
       "source": "/api/upload",
       "destination": "/api/upload"
+    },
+    {
+      "source": "/api/sync-article",
+      "destination": "/api/sync-article"
     }
   ]
 }

@@ -1,17 +1,34 @@
 const url = require('url');
+const fs = require('fs');
+const path = require('path');
 
-let newsData = null;
-try {
-  newsData = require('../news_data.json');
-} catch (e) {
+function getStoreData() {
+  let newsData = null;
+  let articlesStore = {};
+
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const dataPath = path.join(process.cwd(), 'news_data.json');
-    if (fs.existsSync(dataPath)) {
-      newsData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    }
-  } catch (err) {}
+    newsData = require('../news_data.json');
+  } catch (e) {
+    try {
+      const dataPath = path.join(process.cwd(), 'news_data.json');
+      if (fs.existsSync(dataPath)) {
+        newsData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+      }
+    } catch (err) {}
+  }
+
+  try {
+    articlesStore = require('../articles_store.json');
+  } catch (e) {
+    try {
+      const storePath = path.join(process.cwd(), 'articles_store.json');
+      if (fs.existsSync(storePath)) {
+        articlesStore = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+      }
+    } catch (err) {}
+  }
+
+  return { newsData, articlesStore };
 }
 
 function escapeHtml(str) {
@@ -24,7 +41,7 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.newmaharashtragarjana.com';
   const proto = req.headers['x-forwarded-proto'] || 'https';
   
@@ -40,23 +57,60 @@ module.exports = (req, res) => {
   let desc = query.desc || query.description;
   let img = query.img || query.image;
 
-  // If title or img is missing, try looking up in newsData
-  if ((!title || !img) && id && newsData) {
-    const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
-    for (const cat of categories) {
-      if (Array.isArray(newsData[cat])) {
-        const found = newsData[cat].find(a => String(a.id) === String(id));
-        if (found) {
-          if (!title) title = found.title;
-          if (!desc) desc = found.desc || found.caption;
-          if (!img) img = found.img;
-          break;
+  if (id) {
+    const stringId = String(id);
+    const { newsData, articlesStore } = getStoreData();
+
+    // 1. Check in-memory global cache
+    if ((!title || !img) && global._NMG_ARTICLES_CACHE && global._NMG_ARTICLES_CACHE[stringId]) {
+      const cached = global._NMG_ARTICLES_CACHE[stringId];
+      if (!title) title = cached.title;
+      if (!desc) desc = cached.desc;
+      if (!img) img = cached.img;
+    }
+
+    // 2. Check articles_store.json (custom admin articles)
+    if ((!title || !img) && articlesStore && articlesStore[stringId]) {
+      const custom = articlesStore[stringId];
+      if (!title) title = custom.title;
+      if (!desc) desc = custom.desc;
+      if (!img) img = custom.img;
+    }
+
+    // 3. Check news_data.json (default articles)
+    if ((!title || !img) && newsData) {
+      const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
+      for (const cat of categories) {
+        if (Array.isArray(newsData[cat])) {
+          const found = newsData[cat].find(a => String(a.id) === stringId);
+          if (found) {
+            if (!title) title = found.title;
+            if (!desc) desc = found.desc || found.caption;
+            if (!img) img = found.img;
+            break;
+          }
         }
       }
     }
+
+    // 4. Remote GitHub fallback if article was just added
+    if ((!title || !img)) {
+      try {
+        const rawRes = await fetch('https://raw.githubusercontent.com/qiaotech26/New-Maharashtra-Garjana/main/articles_store.json', { cache: 'no-cache' });
+        if (rawRes.ok) {
+          const remoteStore = await rawRes.json();
+          if (remoteStore && remoteStore[stringId]) {
+            const art = remoteStore[stringId];
+            if (!title) title = art.title;
+            if (!desc) desc = art.desc;
+            if (!img) img = art.img;
+          }
+        }
+      } catch (e) {}
+    }
   }
 
-  // Fallbacks if not provided
+  // Fallbacks if still not provided
   title = title || 'न्यू महाराष्ट्र गर्जना बातमी';
   desc = desc || 'महाराष्ट्रातील सर्वात विश्वासार्ह मराठी बातम्यांचे डिजिटल वृत्तपत्र. ताज्या घडामोडी सविस्तर वाचा.';
 
@@ -68,14 +122,14 @@ module.exports = (req, res) => {
     img = `${proto}://${host}${img.startsWith('/') ? img : '/' + img}`;
   }
 
-  const redirectParams = new URLSearchParams();
-  if (id) redirectParams.set('article', id);
-  if (title && title !== 'न्यू महाराष्ट्र गर्जना बातमी') redirectParams.set('title', title);
-  if (img && !img.includes('marathi-title-gold-glow.png')) redirectParams.set('img', img);
-  if (desc && !desc.includes('महाराष्ट्रातील सर्वात विश्वासार्ह')) redirectParams.set('desc', desc);
+  // Clean short redirect target
+  const targetUrl = id 
+    ? `${proto}://${host}/?article=${encodeURIComponent(id)}`
+    : `${proto}://${host}/`;
 
-  const targetUrl = `${proto}://${host}/?${redirectParams.toString()}`;
-  const canonicalUrl = `${proto}://${host}/share?id=${id || ''}`;
+  const canonicalUrl = id 
+    ? `${proto}://${host}/article/${encodeURIComponent(id)}`
+    : `${proto}://${host}/`;
 
   const html = `<!DOCTYPE html>
 <html lang="mr" prefix="og: https://ogp.me/ns#">
@@ -99,7 +153,7 @@ module.exports = (req, res) => {
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="${escapeHtml(title)}">
-  <meta property="og:url" content="${targetUrl}">
+  <meta property="og:url" content="${canonicalUrl}">
   <meta property="og:locale" content="mr_IN">
   
   <!-- Twitter Card Tags -->

@@ -70,10 +70,13 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${host}`);
   let reqPath = decodeURI(parsedUrl.pathname);
 
-  // Delegate /share and /api/share to api/share.js
-  if (reqPath === '/share' || reqPath === '/api/share') {
+  // Delegate /share, /api/share, and /article/:id to api/share.js
+  if (reqPath === '/share' || reqPath === '/api/share' || reqPath.startsWith('/article/')) {
     const shareHandler = require('./api/share.js');
     req.query = Object.fromEntries(parsedUrl.searchParams.entries());
+    if (reqPath.startsWith('/article/')) {
+      req.query.id = reqPath.split('/')[2];
+    }
     return shareHandler(req, res);
   }
 
