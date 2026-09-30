@@ -631,11 +631,11 @@ let currentReaderFontSize = 1.15;
 function openArticle(id) {
   // Find article across all categories
   let article = null;
-  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment'];
+  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
   
   for (const cat of categories) {
-    if (appState.news[cat]) {
-      const found = appState.news[cat].find(a => a.id === id);
+    if (appState.news && appState.news[cat]) {
+      const found = appState.news[cat].find(a => String(a.id) === String(id));
       if (found) {
         article = found;
         break;
@@ -644,16 +644,21 @@ function openArticle(id) {
   }
 
   if (!article) {
-    // Generate fallback article structure
+    // Check if details were passed in the URL parameters from WhatsApp/social share
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramTitle = urlParams.get('title');
+    const paramImg = urlParams.get('img');
+    const paramDesc = urlParams.get('desc');
+
     article = {
       id: id,
       cat: 'महाराष्ट्र',
-      title: 'विशेष बातमी सविस्तर',
-      desc: 'या बातमीचा सविस्तर तपशील उपलब्ध आहे.',
-      content: `<p>न्यू महाराष्ट्र गर्जना डिजिटल वृत्तपत्रात आपले स्वागत आहे. या बातमीबाबत अधिक सविस्तर माहिती लवकरच अद्ययावत केली जात आहे.</p>`,
-      time: '१० ऑगस्ट २०२६',
+      title: paramTitle || 'विशेष बातमी सविस्तर',
+      desc: paramDesc || 'या बातमीचा सविस्तर तपशील उपलब्ध आहे.',
+      content: `<p>${paramDesc || 'न्यू महाराष्ट्र गर्जना डिजिटल वृत्तपत्रात आपले स्वागत आहे. या बातमीबाबत अधिक सविस्तर माहिती लवकरच अद्ययावत केली जात आहे.'}</p>`,
+      time: 'ताज्या घडामोडी',
       author: 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
-      img: `https://picsum.photos/800/480?random=${id}`
+      img: paramImg || `https://picsum.photos/800/480?random=${id}`
     };
   }
 
@@ -833,23 +838,69 @@ function changeReaderFontSize(delta) {
 function shareArticle(platform, id) {
   // Find article across all categories
   let article = null;
-  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment'];
+  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
   for (const cat of categories) {
     if (appState.news && appState.news[cat]) {
-      const found = appState.news[cat].find(a => a.id === id);
+      const found = appState.news[cat].find(a => String(a.id) === String(id));
       if (found) { article = found; break; }
     }
   }
 
   const title = article?.title || document.getElementById('articleReaderTitle')?.textContent || 'न्यू महाराष्ट्र गर्जना बातमी';
-  
-  // Construct clean, crawler-compatible URL with article ID query parameter
-  const origin = window.location.origin;
-  const pathname = window.location.pathname.replace(/\/+$/, '') || '';
-  const shareUrl = `${origin}${pathname}/?article=${id}`;
+  let imgUrl = article?.img || '';
+  const desc = article?.desc || article?.caption || '';
+
+  // If the image is a base64 data:image, upload it first to obtain a public URL for WhatsApp thumbnail
+  if (imgUrl && imgUrl.startsWith('data:image')) {
+    showToast('☁️ व्हॉट्सॲप थंबनेल तयार होत आहे, कृपया १ सेकंद थांबा...', 'info');
+    fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imgUrl })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res && res.url) {
+        if (article) {
+          article.img = res.url;
+          saveStateToStorage();
+        }
+        imgUrl = res.url;
+      }
+      executeSocialShare(platform, id, title, imgUrl, desc);
+    })
+    .catch(() => {
+      executeSocialShare(platform, id, title, '', desc);
+    });
+    return;
+  }
+
+  executeSocialShare(platform, id, title, imgUrl, desc);
+}
+
+function executeSocialShare(platform, id, title, imgUrl, desc) {
+  let origin = window.location.origin;
+  if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    origin = 'https://www.newmaharashtragarjana.com';
+  }
+
+  // Format absolute image URL for WhatsApp scraper
+  let absoluteImg = imgUrl;
+  if (absoluteImg && !absoluteImg.startsWith('http://') && !absoluteImg.startsWith('https://')) {
+    absoluteImg = `${origin}${absoluteImg.startsWith('/') ? absoluteImg : '/' + absoluteImg}`;
+  }
+
+  // Construct URL for /share endpoint with metadata query params so WhatsApp crawler gets exact image
+  const shareParams = new URLSearchParams();
+  shareParams.set('id', id);
+  if (title) shareParams.set('title', title);
+  if (absoluteImg && !absoluteImg.startsWith('data:')) shareParams.set('img', absoluteImg);
+  if (desc) shareParams.set('desc', desc.slice(0, 250));
+
+  const shareUrl = `${origin}/share?${shareParams.toString()}`;
 
   if (platform === 'whatsapp') {
-    const text = encodeURIComponent(`*${title}*\n\nन्यू महाराष्ट्र गर्जना डिजिटल वृत्तपत्रावर सविस्तर बातमी व छायाचित्र पाहण्यासाठी खालील लिंक उघडा:\n${shareUrl}`);
+    const text = encodeURIComponent(`*न्यू महाराष्ट्र गर्जना* - ${title}\n\nसविस्तर वाचा: ${shareUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   } else if (platform === 'facebook') {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
@@ -1777,6 +1828,23 @@ function handleFileUpload(event) {
     reader.onload = function(e) {
       document.getElementById('articleImgInput').value = e.target.result;
       previewArticleImage();
+      
+      // Auto-upload in background so WhatsApp / Social media crawlers have a public HTTPS URL
+      showToast('☁️ फोटो ऑनलाइन सुरक्षित केला जात आहे...', 'info');
+      fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: e.target.result })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.url) {
+          document.getElementById('articleImgInput').value = res.url;
+          previewArticleImage();
+          showToast('✅ फोटो ऑनलाइन जतन झाला (WhatsApp शेअरिंगसाठी तयार)!', 'success');
+        }
+      })
+      .catch(() => {});
     };
     reader.readAsDataURL(file);
   }

@@ -70,6 +70,25 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${host}`);
   let reqPath = decodeURI(parsedUrl.pathname);
 
+  // Delegate /share and /api/share to api/share.js
+  if (reqPath === '/share' || reqPath === '/api/share') {
+    const shareHandler = require('./api/share.js');
+    req.query = Object.fromEntries(parsedUrl.searchParams.entries());
+    return shareHandler(req, res);
+  }
+
+  // Delegate /api/upload to api/upload.js
+  if (reqPath === '/api/upload') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try { req.body = JSON.parse(body); } catch (e) { req.body = body; }
+      const uploadHandler = require('./api/upload.js');
+      return uploadHandler(req, res);
+    });
+    return;
+  }
+
   // API endpoint to sync new/edited articles from Admin panel
   if (req.method === 'POST' && reqPath === '/api/sync-article') {
     let body = '';

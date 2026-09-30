@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        { "type": "query", "key": "article" },
+        { "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|TelegramBot|LinkedInBot|SkypeUriPreview).*" }
+      ],
+      "destination": "/api/share"
+    },
+    {
+      "source": "/share",
+      "destination": "/api/share"
+    },
+    {
+      "source": "/article/:id",
+      "destination": "/api/share?id=:id"
+    },
+    {
+      "source": "/api/share",
+      "destination": "/api/share"
+    },
+    {
+      "source": "/api/upload",
+      "destination": "/api/upload"
+    }
+  ]
+}
