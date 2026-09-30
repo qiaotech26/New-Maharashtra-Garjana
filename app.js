@@ -658,15 +658,19 @@ function openArticle(id) {
   }
 
   // Update SEO for this individual article
+  const origin = window.location.origin;
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '';
+  const articleUrl = `${origin}${pathname}/?article=${article.id}`;
+
   setSEOMetadata(
     `${article.title} - न्यू महाराष्ट्र गर्जना | New Maharashtra Garjana`,
     article.desc || article.title,
-    `https://newmaharashtragarjana.com/#article-${article.id}`,
+    articleUrl,
     article.img
   );
   injectDynamicNewsArticleSchema(article);
   try {
-    history.pushState({ articleId: id }, '', `#article-${id}`);
+    history.pushState({ articleId: id }, '', `?article=${id}`);
   } catch (e) {}
 
   const modal = document.getElementById('articleModal');
@@ -766,8 +770,9 @@ function closeArticleModal() {
     setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
   }
   try {
-    if (window.location.hash.startsWith('#article-')) {
-      history.replaceState(null, '', window.location.pathname);
+    if (window.location.search.includes('article=') || window.location.hash.startsWith('#article-')) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      history.replaceState(null, '', cleanUrl);
     }
   } catch (e) {}
 
@@ -826,19 +831,33 @@ function changeReaderFontSize(delta) {
 
 // SOCIAL SHARING
 function shareArticle(platform, id) {
-  const title = document.getElementById('articleReaderTitle')?.textContent || 'न्यू महाराष्ट्र गर्जना बातमी';
-  const url = window.location.href;
+  // Find article across all categories
+  let article = null;
+  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment'];
+  for (const cat of categories) {
+    if (appState.news && appState.news[cat]) {
+      const found = appState.news[cat].find(a => a.id === id);
+      if (found) { article = found; break; }
+    }
+  }
+
+  const title = article?.title || document.getElementById('articleReaderTitle')?.textContent || 'न्यू महाराष्ट्र गर्जना बातमी';
+  
+  // Construct clean, crawler-compatible URL with article ID query parameter
+  const origin = window.location.origin;
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '';
+  const shareUrl = `${origin}${pathname}/?article=${id}`;
 
   if (platform === 'whatsapp') {
-    const text = encodeURIComponent(`*न्यू महाराष्ट्र गर्जना* - ${title}\n\nसविस्तर वाचा: ${url}`);
+    const text = encodeURIComponent(`*${title}*\n\nन्यू महाराष्ट्र गर्जना डिजिटल वृत्तपत्रावर सविस्तर बातमी व छायाचित्र पाहण्यासाठी खालील लिंक उघडा:\n${shareUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   } else if (platform === 'facebook') {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
   } else if (platform === 'instagram') {
     window.open('https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==', '_blank');
   } else if (platform === 'copy') {
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('🔗 बातमीची लिंक यशस्वीरीत्या कॉपी झाली!', 'success');
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast('🔗 बातमीची WhatsApp शेअर लिंक यशस्वीरीत्या कॉपी झाली!', 'success');
     }).catch(() => {
       showToast('लिंक कॉपी करता आली नाही.', 'info');
     });
@@ -1651,6 +1670,18 @@ function executePublishArticle() {
   }
 
   saveStateToStorage();
+
+  // Sync to server so WhatsApp link previews can fetch newly added articles immediately
+  try {
+    const publishedArticle = appState.news.latest[0];
+    if (publishedArticle) {
+      fetch('/api/sync-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(publishedArticle)
+      }).catch(() => {});
+    }
+  } catch (e) {}
   resetArticleForm();
   renderAll();
   switchAdminTab('manage');
@@ -2134,8 +2165,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   }
 
-  // URL Hash Deep-Linking for Articles, Categories, and Static Info Pages
-  function handleUrlHash() {
+  // URL Deep-Linking for Articles, Categories, and Static Info Pages
+  function handleUrlDeepLink() {
+    // 1. Check URL query parameters (e.g. ?article=101 or ?id=101 from WhatsApp/Social sharing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleQuery = urlParams.get('article') || urlParams.get('id');
+    if (articleQuery) {
+      const artId = parseInt(articleQuery, 10);
+      if (artId) {
+        setTimeout(() => openArticle(artId), 250);
+        return;
+      }
+    }
+
+    // 2. Check URL Hash (e.g. #article-101, #maharashtra, #आमच्याबद्दल)
     const hash = window.location.hash;
     if (!hash) return;
     if (hash.startsWith('#article-')) {
@@ -2153,8 +2196,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
-  handleUrlHash();
-  window.addEventListener('hashchange', handleUrlHash);
+  handleUrlDeepLink();
+  window.addEventListener('hashchange', handleUrlDeepLink);
+  window.addEventListener('popstate', handleUrlDeepLink);
 });
 
 // ── MARATHI CALLIGRAPHY FONT SWITCHER ──
