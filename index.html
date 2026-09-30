@@ -744,6 +744,7 @@
         <button class="admin-tab-btn" id="tabManageBtn" onclick="switchAdminTab('manage')">📋 बातम्यांची यादी (<span id="adminTotalCount">0</span>)</button>
         <button class="admin-tab-btn" id="tabTickerBtn" onclick="switchAdminTab('ticker')">📢 ब्रेकिंग टिकर</button>
         <button class="admin-tab-btn" id="tabSecurityBtn" onclick="switchAdminTab('security')">🔒 पिन व सुरक्षा</button>
+        <button class="admin-tab-btn" id="tabFirebaseBtn" onclick="switchAdminTab('firebase')">☁️ क्लाउड सिंक (Firestore)</button>
       </div>
 
       <!-- TAB 1: ADD / EDIT ARTICLE FORM -->
@@ -953,6 +954,73 @@
         </div>
       </div>
 
+      <!-- TAB 5: CLOUD FIRESTORE SYNCHRONIZATION -->
+      <div class="admin-tab-content" id="adminTabFirebase">
+        <div class="admin-tab-title-wrap">
+          <h4>☁️ Google Firebase Cloud Firestore - सर्व उपकरणांवर रिअल-टाइम सिंक</h4>
+          <span class="tab-subtitle-note">येथे जोडलेली बातमी जगातील सर्व वाचकांच्या मोबाईल, टॅब व कॉम्प्युटरवर एकाच वेळी आपोआप दिसते</span>
+        </div>
+
+        <div class="security-card" style="margin-bottom: 20px;">
+          <div class="security-card-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">🔥</div>
+          <div class="security-card-content">
+            <span class="sec-lbl">क्लाउड डेटाबेस स्थिती (Current Sync Status):</span>
+            <div class="sec-pin-wrap">
+              <span id="firestoreStatusBadge" style="font-weight:700; color: #10B981; font-size:1.05rem;">✅ रिअल-टाइम क्लाउड सिंक सक्रिय आहे</span>
+            </div>
+            <p style="font-size:0.85rem; color:#64748B; margin-top:4px;">
+              नवीन बातमी प्रकाशित करताच ती Cloud Firestore व क्लाउड बॅकअपमध्ये सेव्ह होते आणि सर्व प्रेक्षकांच्या स्क्रीनवर थेट रिअल-टाइम अपडेट होते.
+            </p>
+          </div>
+        </div>
+
+        <div class="security-change-box">
+          <h5>🔥 Firebase प्रोजेक्ट क्रेडेन्शियल्स (Firebase Project Config)</h5>
+          <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 15px;">
+            आपल्या Google Firebase Console (<a href="https://console.firebase.google.com" target="_blank" rel="noopener" style="color: var(--red); font-weight: 600;">console.firebase.google.com</a>) मधील Project Settings मधून खालील माहिती येथे टाका:
+          </p>
+          <form id="firebaseConfigForm" onsubmit="handleSaveFirebaseConfig(event)">
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="fbApiKey">API Key *</label>
+                <input type="text" id="fbApiKey" placeholder="AIzaSy..." class="form-control" required>
+              </div>
+              <div class="form-group col-6">
+                <label for="fbProjectId">Project ID *</label>
+                <input type="text" id="fbProjectId" placeholder="new-maharashtra-garjana" class="form-control" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="fbAuthDomain">Auth Domain</label>
+                <input type="text" id="fbAuthDomain" placeholder="new-maharashtra-garjana.firebaseapp.com" class="form-control">
+              </div>
+              <div class="form-group col-6">
+                <label for="fbStorageBucket">Storage Bucket</label>
+                <input type="text" id="fbStorageBucket" placeholder="new-maharashtra-garjana.appspot.com" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="fbSenderId">Messaging Sender ID</label>
+                <input type="text" id="fbSenderId" placeholder="123456789012" class="form-control">
+              </div>
+              <div class="form-group col-6">
+                <label for="fbAppId">App ID</label>
+                <input type="text" id="fbAppId" placeholder="1:123456789012:web:..." class="form-control">
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 15px;">
+              <button type="submit" class="btn btn-success">💾 Firebase क्रेडेन्शियल्स सेव्ह करा</button>
+              <button type="button" class="btn btn-secondary" onclick="testCloudSyncNow()">🔄 आताच डेटा सिंक तपासा</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1125,6 +1193,11 @@
   }
 </script>
 <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<!-- Firebase App & Cloud Firestore SDKs (v10 compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 
 <script src="app.js"></script>
 </body>

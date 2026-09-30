@@ -18,7 +18,15 @@ module.exports = async (req, res) => {
   }
 
   if (req.method === 'GET') {
-    return res.status(200).json(global._NMG_ARTICLES_CACHE || {});
+    let store = global._NMG_ARTICLES_CACHE || {};
+    try {
+      const localFile = path.join(process.cwd(), 'articles_store.json');
+      if (fs.existsSync(localFile)) {
+        const fileStore = JSON.parse(fs.readFileSync(localFile, 'utf8'));
+        store = { ...fileStore, ...store };
+      }
+    } catch (e) {}
+    return res.status(200).json(store);
   }
 
   if (req.method !== 'POST') {

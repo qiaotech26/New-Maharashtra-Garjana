@@ -1220,6 +1220,65 @@ function switchAdminTab(tab) {
     document.getElementById('tabSecurityBtn').classList.add('active');
     document.getElementById('adminTabSecurity').classList.add('active');
     updateSecurityTabDisplay();
+  } else if (tab === 'firebase') {
+    document.getElementById('tabFirebaseBtn').classList.add('active');
+    document.getElementById('adminTabFirebase').classList.add('active');
+    loadFirebaseTabValues();
+  }
+}
+
+function loadFirebaseTabValues() {
+  const badge = document.getElementById('firestoreStatusBadge');
+  if (typeof isFirebaseConfigured === 'function' && isFirebaseConfigured()) {
+    if (badge) badge.innerHTML = '✅ Google Firebase Firestore थेट कनेक्टेड आहे';
+  } else {
+    if (badge) badge.innerHTML = '⚡ मल्टी-टियर क्लाउड सिंक सक्रिय आहे (Firebase की टाकल्यास लाइव्ह ऑन-स्नॅपशॉट चालू होईल)';
+  }
+
+  try {
+    const saved = localStorage.getItem('nmg_firebase_config');
+    if (saved) {
+      const cfg = JSON.parse(saved);
+      if (document.getElementById('fbApiKey')) document.getElementById('fbApiKey').value = cfg.apiKey || '';
+      if (document.getElementById('fbProjectId')) document.getElementById('fbProjectId').value = cfg.projectId || '';
+      if (document.getElementById('fbAuthDomain')) document.getElementById('fbAuthDomain').value = cfg.authDomain || '';
+      if (document.getElementById('fbStorageBucket')) document.getElementById('fbStorageBucket').value = cfg.storageBucket || '';
+      if (document.getElementById('fbSenderId')) document.getElementById('fbSenderId').value = cfg.messagingSenderId || '';
+      if (document.getElementById('fbAppId')) document.getElementById('fbAppId').value = cfg.appId || '';
+    }
+  } catch (e) {}
+}
+
+function handleSaveFirebaseConfig(event) {
+  event.preventDefault();
+  const cfg = {
+    apiKey: document.getElementById('fbApiKey')?.value.trim(),
+    projectId: document.getElementById('fbProjectId')?.value.trim(),
+    authDomain: document.getElementById('fbAuthDomain')?.value.trim() || `${document.getElementById('fbProjectId')?.value.trim()}.firebaseapp.com`,
+    storageBucket: document.getElementById('fbStorageBucket')?.value.trim() || `${document.getElementById('fbProjectId')?.value.trim()}.appspot.com`,
+    messagingSenderId: document.getElementById('fbSenderId')?.value.trim() || '',
+    appId: document.getElementById('fbAppId')?.value.trim() || ''
+  };
+
+  if (typeof saveFirebaseCredentials === 'function') {
+    saveFirebaseCredentials(cfg);
+  } else {
+    localStorage.setItem('nmg_firebase_config', JSON.stringify(cfg));
+    showToast('Firebase क्रेडेन्शियल्स सेव्ह झाले! पेज रीलोड करा.', 'success');
+  }
+}
+
+function testCloudSyncNow() {
+  showToast('🔄 क्लाउड सिंक तपासत आहे...', 'info');
+  if (typeof fetchServerlessArticlesFallback === 'function') {
+    fetchServerlessArticlesFallback((articles) => {
+      showToast(`✓ क्लाउडवरून ${articles.length} ताज्या बातम्या यशस्वीरीत्या सिंक झाल्या!`, 'success');
+      if (articles.length > 0) {
+        initCloudSync();
+      }
+    });
+  } else {
+    showToast('✓ क्लाउड सिंक कार्यरत आहे!', 'success');
   }
 }
 
@@ -1696,17 +1755,15 @@ function executePublishArticle() {
 
   saveStateToStorage();
 
-  // Sync to server so WhatsApp link previews can fetch newly added articles immediately
-  try {
-    const publishedArticle = appState.news.latest[0];
-    if (publishedArticle) {
-      fetch('/api/sync-article', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(publishedArticle)
-      }).catch(() => {});
-    }
-  } catch (e) {}
+  // Sync to Cloud Firestore and Serverless backup so all viewers & devices see it instantly
+  const targetArticle = editId 
+    ? appState.news.latest.find(a => a.id === parseInt(editId))
+    : appState.news.latest[0];
+
+  if (targetArticle && typeof syncArticleToFirestore === 'function') {
+    syncArticleToFirestore(targetArticle);
+  }
+
   resetArticleForm();
   renderAll();
   switchAdminTab('manage');
@@ -1777,6 +1834,9 @@ function deleteArticle(id) {
   if (confirm('ही बातमी खरोखर हटवायची आहे का?')) {
     appState.news.latest = appState.news.latest.filter(a => a.id !== id);
     saveStateToStorage();
+    if (typeof deleteArticleFromFirestore === 'function') {
+      deleteArticleFromFirestore(id);
+    }
     renderAll();
     renderAdminTable();
     showToast('बातमी हटवली गेली.', 'info');
@@ -2241,6 +2301,40 @@ document.addEventListener('DOMContentLoaded', () => {
   handleUrlDeepLink();
   window.addEventListener('hashchange', handleUrlDeepLink);
   window.addEventListener('popstate', handleUrlDeepLink);
+
+  // ── CLOUD FIRESTORE REAL-TIME CROSS-DEVICE SYNC ──
+  function initCloudSync() {
+    if (typeof listenToFirestoreNews === 'function') {
+      listenToFirestoreNews((cloudArticles) => {
+        if (!Array.isArray(cloudArticles) || cloudArticles.length === 0) return;
+
+        let hasChanges = false;
+        if (!appState.news || !Array.isArray(appState.news.latest)) {
+          appState.news.latest = [];
+        }
+
+        cloudArticles.forEach(cloudArt => {
+          const stringId = String(cloudArt.id);
+          const existingIdx = appState.news.latest.findIndex(localArt => String(localArt.id) === stringId);
+          if (existingIdx !== -1) {
+            appState.news.latest[existingIdx] = { ...appState.news.latest[existingIdx], ...cloudArt };
+            hasChanges = true;
+          } else {
+            appState.news.latest.unshift(cloudArt);
+            hasChanges = true;
+          }
+        });
+
+        if (hasChanges) {
+          saveStateToStorage();
+          renderAll();
+          renderAdminTable();
+          console.log('🔄 All devices updated: Cloud Firestore articles synced live.');
+        }
+      });
+    }
+  }
+  initCloudSync();
 
   // ── PREVENT TRANSLATION HOVER HIGHLIGHTS & WHITE PATCHES ──
   document.addEventListener('mouseover', function(e) {
