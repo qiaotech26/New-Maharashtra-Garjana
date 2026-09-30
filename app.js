@@ -2267,6 +2267,37 @@ document.addEventListener('DOMContentLoaded', () => {
   handleUrlDeepLink();
   window.addEventListener('hashchange', handleUrlDeepLink);
   window.addEventListener('popstate', handleUrlDeepLink);
+
+  // ── PREVENT TRANSLATION HOVER HIGHLIGHTS & WHITE PATCHES ──
+  document.addEventListener('mouseover', function(e) {
+    if (!e.target) return;
+    const target = e.target;
+    if (target.classList && (target.classList.contains('goog-text-highlight') || target.className?.includes?.('VIpgJd'))) {
+      target.classList.remove('goog-text-highlight');
+      target.style.setProperty('background-color', 'transparent', 'important');
+      target.style.setProperty('background', 'transparent', 'important');
+      target.style.setProperty('box-shadow', 'none', 'important');
+      target.style.setProperty('color', 'inherit', 'important');
+    }
+    if (target.tagName === 'FONT') {
+      target.style.setProperty('background-color', 'transparent', 'important');
+      target.style.setProperty('background', 'transparent', 'important');
+      target.style.setProperty('box-shadow', 'none', 'important');
+      target.style.setProperty('color', 'inherit', 'important');
+    }
+  }, true);
+
+  const suppressTranslateBalloons = () => {
+    const badElements = document.querySelectorAll('#goog-gt-tt, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .goog-te-balloon-frame, .goog-tooltip');
+    badElements.forEach(el => {
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('visibility', 'hidden', 'important');
+      el.style.setProperty('opacity', '0', 'important');
+      el.style.setProperty('pointer-events', 'none', 'important');
+    });
+  };
+  suppressTranslateBalloons();
+  setInterval(suppressTranslateBalloons, 1500);
 });
 
 // ── MARATHI CALLIGRAPHY FONT SWITCHER ──

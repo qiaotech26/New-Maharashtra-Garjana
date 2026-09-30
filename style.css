@@ -184,31 +184,88 @@ button, input, select, textarea {
   padding: 6px;
 }
 
-/* HIDE DEFAULT GOOGLE TRANSLATE BANNER OVERLAYS */
-.goog-te-banner-frame.skiptranslate,
+/* ─── COMPREHENSIVE SUPPRESSION OF TRANSLATION HOVER HIGHLIGHTS & WHITE PATCHES ─── */
+.goog-text-highlight,
+span.goog-text-highlight,
+font.goog-text-highlight,
+[class*="goog-text-highlight"],
+[class*="goog-text-highlight"]:hover,
+[class*="VIpgJd-yAWNEb"],
+[class*="VIpgJd-yAWNEb"]:hover,
+.VIpgJd-yAWNEb-hvhGLb-hxG9ec,
+.VIpgJd-yAWNEb-r4nke,
+.VIpgJd-yAWNEb-L7lbkb,
+font,
+font[style],
+font:hover,
+span[style*="background-color: rgb(201, 215, 241)"],
+font[style*="background-color: rgb(201, 215, 241)"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  color: inherit !important;
+  cursor: inherit !important;
+}
+
+#goog-gt-tt,
+#goog-gt-tt *,
+.goog-tooltip,
+.goog-tooltip *,
+.goog-tooltip:hover,
+.goog-te-balloon-frame,
+.goog-te-balloon-frame *,
 .goog-te-banner-frame,
 .goog-te-gadget,
 .VIpgJd-ZVi9od-ORHb-OEVmcd,
-#goog-gt-tt,
-iframe[name="goog-te-banner-frame"] {
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+[id^="goog-gt-"],
+[class*="VIpgJd-ZVi9od"],
+iframe.goog-te-banner-frame,
+iframe[name="goog-te-banner-frame"],
+iframe.VIpgJd-ZVi9od-xl07Ob-OEVmcd {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
-  height: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  top: -99999px !important;
+  left: -99999px !important;
   width: 0 !important;
+  height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
   border: none !important;
-  z-index: -10000 !important;
+  z-index: -99999 !important;
 }
+
 body {
   top: 0px !important;
   position: static !important;
 }
-.goog-tooltip, .goog-tooltip:hover {
-  display: none !important;
+
+/* Premium Text Selection - Brand Red instead of default OS washed out/white patch */
+::selection {
+  background: var(--red) !important;
+  color: #FFFFFF !important;
 }
-.goog-text-highlight {
-  background-color: transparent !important;
-  box-shadow: none !important;
+::-moz-selection {
+  background: var(--red) !important;
+  color: #FFFFFF !important;
+}
+
+.site-title font,
+.site-title font * {
+  -webkit-text-fill-color: transparent !important;
+  background: inherit !important;
+  background-clip: inherit !important;
+  -webkit-background-clip: inherit !important;
 }
 
 .font-switcher-wrap {
