@@ -894,11 +894,8 @@ function shareArticle(platform, id) {
     } catch (e) {}
   }
 
-  // Construct short, clean, professional URL
-  let origin = window.location.origin;
-  if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    origin = 'https://www.newmaharashtragarjana.com';
-  }
+  // Always use the production domain for share URLs to avoid sharing Vercel preview or localhost URLs
+  const origin = 'https://www.newmaharashtragarjana.com';
 
   let shareUrl = `${origin}/article/${id}`;
   // For custom or new articles with custom images, ensure thumbnail query parameter is attached for crawlers
@@ -929,14 +926,14 @@ function shareArticle(platform, id) {
 
 // ── WHATSAPP SHARE FORMAT TEMPLATE ENGINE ──
 const defaultWhatsAppShareTemplate = {
-  groupHeading: 'पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा',
+  groupHeading: 'महाराष्ट्रातील ताज्या बातम्यांसाठी आजच आमचा व्हाट्सएप ग्रुप जॉईन करा',
   groupEmoji: '🟢',
-  groupLink: 'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3',
-  channelHeading: 'पुणे पिंपरी चिंचवड ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
-  channelFollowText: 'Follow the PPCNEWS .IN channel on WhatsApp:',
-  channelLink: 'https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q',
+  groupLink: '',
+  channelHeading: 'न्यू महाराष्ट्र गर्जनाच्या ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
+  channelFollowText: 'Follow न्यू महाराष्ट्र गर्जना channel on WhatsApp:',
+  channelLink: '',
   contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
-  contactPhone: '9922161114'
+  contactPhone: ''
 };
 
 function formatWhatsAppShareMessage(title, shareUrl) {
@@ -948,7 +945,24 @@ function formatWhatsAppShareMessage(title, shareUrl) {
     }
   } catch (e) {}
 
-  return `${title}\n${shareUrl}\n\n${tpl.groupHeading}\n${tpl.groupEmoji}\n${tpl.groupLink}\n\n${tpl.channelHeading}\n${tpl.channelFollowText}\n${tpl.channelLink}\n\n${tpl.contactHeading}\n${tpl.contactPhone}`;
+  // Build message parts — only include group/channel/contact if real values are set
+  let msg = `${title}\n${shareUrl}`;
+
+  const hasGroup = tpl.groupLink && tpl.groupLink.startsWith('https://');
+  if (hasGroup) {
+    msg += `\n\n${tpl.groupHeading}\n${tpl.groupEmoji}\n${tpl.groupLink}`;
+  }
+
+  const hasChannel = tpl.channelLink && tpl.channelLink.startsWith('https://');
+  if (hasChannel) {
+    msg += `\n\n${tpl.channelHeading}\n${tpl.channelFollowText}\n${tpl.channelLink}`;
+  }
+
+  if (tpl.contactPhone && tpl.contactPhone.trim()) {
+    msg += `\n\n${tpl.contactHeading}\n${tpl.contactPhone}`;
+  }
+
+  return msg;
 }
 
 // COMMENTS SYSTEM
