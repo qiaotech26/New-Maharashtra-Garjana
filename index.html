@@ -1019,7 +1019,57 @@
             </div>
           </form>
         </div>
+
+        <!-- WHATSAPP SHARE FORMAT SETTINGS -->
+        <div class="security-change-box" style="margin-top: 25px;">
+          <h5>📲 व्हॉट्सॲप शेअर मेसेज फॉरमॅट (WhatsApp Share Format Template)</h5>
+          <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 15px;">
+            बातमी व्हॉट्सॲपवर शेअर करताना खालील नेमका फॉरमॅट जनरेट होतो. यातील ग्रुप लिंक, चॅनेल लिंक आणि संपर्क नंबर येथे अपडेट करू शकता:
+          </p>
+          <form id="shareTemplateConfigForm" onsubmit="handleSaveShareTemplateConfig(event)">
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplGroupHeading">ग्रुप कॉलिंग टेक्स्ट (Group Call-to-Action)</label>
+                <input type="text" id="shareTplGroupHeading" class="form-control" value="पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplGroupLink">व्हॉट्सॲप ग्रुप लिंक (WhatsApp Group Invite Link)</label>
+                <input type="text" id="shareTplGroupLink" class="form-control" value="https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplChannelHeading">चॅनेल कॉलिंग टेक्स्ट (Channel Heading)</label>
+                <input type="text" id="shareTplChannelHeading" class="form-control" value="पुणे पिंपरी चिंचवड ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplChannelFollowText">चॅनेल फॉलो टेक्स्ट (Channel Follow Subtitle)</label>
+                <input type="text" id="shareTplChannelFollowText" class="form-control" value="Follow the PPCNEWS .IN channel on WhatsApp:">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplChannelLink">व्हॉट्सॲप चॅनेल लिंक (WhatsApp Channel Link)</label>
+                <input type="text" id="shareTplChannelLink" class="form-control" value="https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <label for="shareTplContactPhone">बातम्या / जाहिराती संपर्क नंबर (Contact Phone)</label>
+                <input type="text" id="shareTplContactPhone" class="form-control" value="9922161114">
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top: 15px;">
+              <button type="submit" class="btn btn-success">💾 शेअर फॉरमॅट सेव्ह करा</button>
+            </div>
+          </form>
+        </div>
       </div>
+
 
     </div>
   </div>

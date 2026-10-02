@@ -907,13 +907,9 @@ function shareArticle(platform, id) {
     shareUrl += `?img=${encodeURIComponent(article.img)}`;
   }
 
-  if (platform === 'whatsapp') {
-    let shareText = `*न्यू महाराष्ट्र गर्जना* 🗞️\n\n📌 *${title}*`;
-    if (cleanDesc) {
-      shareText += `\n\n📝 ${cleanDesc}`;
-    }
-    shareText += `\n\n👉 *सविस्तर बातमी वाचा व शेअर करा:*\n${shareUrl}`;
+  const shareText = formatWhatsAppShareMessage(title, shareUrl);
 
+  if (platform === 'whatsapp') {
     // Direct synchronous window.open - NEVER blocked by browser popup blockers!
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   } else if (platform === 'facebook') {
@@ -921,20 +917,38 @@ function shareArticle(platform, id) {
   } else if (platform === 'instagram') {
     window.open('https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==', '_blank');
   } else if (platform === 'copy') {
-    let shareText = `*न्यू महाराष्ट्र गर्जना* 🗞️\n\n📌 *${title}*`;
-    if (cleanDesc) {
-      shareText += `\n\n📝 ${cleanDesc}`;
-    }
-    shareText += `\n\n👉 *सविस्तर बातमी वाचा:*\n${shareUrl}`;
-
     navigator.clipboard.writeText(shareText).then(() => {
-      showToast('🔗 बातमीचा गोषवारा व WhatsApp शेअर लिंक कॉपी झाली!', 'success');
+      showToast('🔗 बातमीचा WhatsApp मेसेज व लिंक कॉपी झाली!', 'success');
     }).catch(() => {
       navigator.clipboard.writeText(shareUrl).then(() => {
         showToast('बातमीची लिंक कॉपी झाली!', 'success');
       });
     });
   }
+}
+
+// ── WHATSAPP SHARE FORMAT TEMPLATE ENGINE ──
+const defaultWhatsAppShareTemplate = {
+  groupHeading: 'पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा',
+  groupEmoji: '🟢',
+  groupLink: 'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3',
+  channelHeading: 'पुणे पिंपरी चिंचवड ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
+  channelFollowText: 'Follow the PPCNEWS .IN channel on WhatsApp:',
+  channelLink: 'https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q',
+  contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
+  contactPhone: '9922161114'
+};
+
+function formatWhatsAppShareMessage(title, shareUrl) {
+  let tpl = Object.assign({}, defaultWhatsAppShareTemplate);
+  try {
+    const saved = localStorage.getItem('nmg_share_template_config');
+    if (saved) {
+      Object.assign(tpl, JSON.parse(saved));
+    }
+  } catch (e) {}
+
+  return `${title}\n${shareUrl}\n\n${tpl.groupHeading}\n${tpl.groupEmoji}\n${tpl.groupLink}\n\n${tpl.channelHeading}\n${tpl.channelFollowText}\n${tpl.channelLink}\n\n${tpl.contactHeading}\n${tpl.contactPhone}`;
 }
 
 // COMMENTS SYSTEM
@@ -1295,6 +1309,40 @@ function loadFirebaseTabValues() {
       if (document.getElementById('fbAppId')) document.getElementById('fbAppId').value = cfg.appId || '';
     }
   } catch (e) {}
+
+  loadShareTemplateValues();
+}
+
+function loadShareTemplateValues() {
+  let tpl = Object.assign({}, defaultWhatsAppShareTemplate);
+  try {
+    const saved = localStorage.getItem('nmg_share_template_config');
+    if (saved) Object.assign(tpl, JSON.parse(saved));
+  } catch (e) {}
+
+  if (document.getElementById('shareTplGroupHeading')) document.getElementById('shareTplGroupHeading').value = tpl.groupHeading;
+  if (document.getElementById('shareTplGroupLink')) document.getElementById('shareTplGroupLink').value = tpl.groupLink;
+  if (document.getElementById('shareTplChannelHeading')) document.getElementById('shareTplChannelHeading').value = tpl.channelHeading;
+  if (document.getElementById('shareTplChannelFollowText')) document.getElementById('shareTplChannelFollowText').value = tpl.channelFollowText;
+  if (document.getElementById('shareTplChannelLink')) document.getElementById('shareTplChannelLink').value = tpl.channelLink;
+  if (document.getElementById('shareTplContactPhone')) document.getElementById('shareTplContactPhone').value = tpl.contactPhone;
+}
+
+function handleSaveShareTemplateConfig(event) {
+  event.preventDefault();
+  const cfg = {
+    groupHeading: document.getElementById('shareTplGroupHeading')?.value.trim() || defaultWhatsAppShareTemplate.groupHeading,
+    groupEmoji: '🟢',
+    groupLink: document.getElementById('shareTplGroupLink')?.value.trim() || defaultWhatsAppShareTemplate.groupLink,
+    channelHeading: document.getElementById('shareTplChannelHeading')?.value.trim() || defaultWhatsAppShareTemplate.channelHeading,
+    channelFollowText: document.getElementById('shareTplChannelFollowText')?.value.trim() || defaultWhatsAppShareTemplate.channelFollowText,
+    channelLink: document.getElementById('shareTplChannelLink')?.value.trim() || defaultWhatsAppShareTemplate.channelLink,
+    contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
+    contactPhone: document.getElementById('shareTplContactPhone')?.value.trim() || defaultWhatsAppShareTemplate.contactPhone
+  };
+
+  localStorage.setItem('nmg_share_template_config', JSON.stringify(cfg));
+  showToast('✅ व्हॉट्सॲप शेअर मेसेज फॉरमॅट यशस्वीरीत्या सेव्ह झाला!', 'success');
 }
 
 function handleSaveFirebaseConfig(event) {
