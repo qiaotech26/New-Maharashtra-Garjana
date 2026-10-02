@@ -152,6 +152,25 @@ module.exports = async (req, res) => {
         }
       } catch (e) {}
     }
+
+    // 5. Cloud Firestore lookup for project 'newmahagarjana'
+    if (!title || !img) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        const fsRes = await fetch(`https://firestore.googleapis.com/v1/projects/newmahagarjana/databases/(default)/documents/news_articles/${stringId}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        if (fsRes.ok) {
+          const doc = await fsRes.json();
+          const fields = doc.fields || {};
+          if (!title && fields.title && fields.title.stringValue) title = fields.title.stringValue;
+          if (!desc && fields.desc && fields.desc.stringValue) desc = fields.desc.stringValue;
+          if (!img && fields.img && fields.img.stringValue) img = fields.img.stringValue;
+        }
+      } catch (e) {}
+    }
   }
 
   // Fallbacks if still not provided

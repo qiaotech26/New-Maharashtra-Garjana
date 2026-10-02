@@ -6,15 +6,14 @@
  */
 
 // 1. YOUR FIREBASE CONFIGURATION
-// Replace the values below with your Firebase Project details from:
-// https://console.firebase.google.com -> Project Settings -> General -> Your apps -> Web app
+// Project: NEWMAHAGARJANA (Project Number: 311284464392)
 const firebaseConfig = {
   apiKey: "AIzaSyDummyKey_ReplaceWithYourFirebaseApiKey",
-  authDomain: "new-maharashtra-garjana.firebaseapp.com",
-  projectId: "new-maharashtra-garjana",
-  storageBucket: "new-maharashtra-garjana.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  authDomain: "newmahagarjana.firebaseapp.com",
+  projectId: "newmahagarjana",
+  storageBucket: "newmahagarjana.firebasestorage.app",
+  messagingSenderId: "311284464392",
+  appId: "1:311284464392:web:newmahagarjana"
 };
 
 // Check if credentials were saved via Admin UI
