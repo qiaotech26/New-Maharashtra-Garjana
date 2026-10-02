@@ -2,6 +2,8 @@ const url = require('url');
 const fs = require('fs');
 const path = require('path');
 
+const resolvedImageCache = {};
+
 function getStoreData() {
   let newsData = null;
   let articlesStore = {};
@@ -41,6 +43,35 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function cleanText(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function resolveDirectImageUrl(imgUrl) {
+  if (!imgUrl || typeof imgUrl !== 'string') return imgUrl;
+  if (resolvedImageCache[imgUrl]) return resolvedImageCache[imgUrl];
+
+  // WhatsApp crawlers fail on 302 redirects. Resolve picsum.photos to direct fastly CDN URLs.
+  if (imgUrl.includes('picsum.photos') && !imgUrl.includes('fastly.picsum.photos')) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(imgUrl, { redirect: 'follow', signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok && res.url && res.url !== imgUrl) {
+        resolvedImageCache[imgUrl] = res.url;
+        return res.url;
+      }
+    } catch (e) {}
+  }
+
+  return imgUrl;
+}
+
 module.exports = async (req, res) => {
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'www.newmaharashtragarjana.com';
   const proto = req.headers['x-forwarded-proto'] || 'https';
@@ -48,14 +79,27 @@ module.exports = async (req, res) => {
   // Parse query parameters
   let query = req.query;
   if (!query || Object.keys(query).length === 0) {
-    const parsed = url.parse(req.url, true);
-    query = parsed.query || {};
+    try {
+      const parsedUrl = new URL(req.url, `${proto}://${host}`);
+      query = Object.fromEntries(parsedUrl.searchParams.entries());
+    } catch (e) {
+      query = {};
+    }
   }
   
-  const id = query.id || query.article;
+  // Extract ID from query OR URL path (/article/:id or /share/:id)
+  let id = query.id || query.article;
+  if (!id && req.url) {
+    const cleanPath = req.url.split('?')[0];
+    const match = cleanPath.match(/\/(?:article|share)\/([^/?#]+)/i);
+    if (match) {
+      id = decodeURIComponent(match[1]);
+    }
+  }
+
   let title = query.title;
   let desc = query.desc || query.description;
-  let img = query.img || query.image;
+  let img = query.img || query.image || query.thumb;
 
   if (id) {
     const stringId = String(id);
@@ -77,7 +121,7 @@ module.exports = async (req, res) => {
       if (!img) img = custom.img;
     }
 
-    // 3. Check news_data.json (default articles)
+    // 3. Check news_data.json (default articles across all categories)
     if ((!title || !img) && newsData) {
       const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
       for (const cat of categories) {
@@ -111,8 +155,12 @@ module.exports = async (req, res) => {
   }
 
   // Fallbacks if still not provided
-  title = title || 'न्यू महाराष्ट्र गर्जना बातमी';
-  desc = desc || 'महाराष्ट्रातील सर्वात विश्वासार्ह मराठी बातम्यांचे डिजिटल वृत्तपत्र. ताज्या घडामोडी सविस्तर वाचा.';
+  title = cleanText(title) || 'न्यू महाराष्ट्र गर्जना बातमी';
+  desc = cleanText(desc) || 'महाराष्ट्रातील सर्वात विश्वासार्ह मराठी बातम्यांचे डिजिटल वृत्तपत्र. ताज्या घडामोडी सविस्तर वाचा.';
+  
+  if (desc.length > 240) {
+    desc = desc.substring(0, 237).trim() + '...';
+  }
 
   // Format absolute image URL for WhatsApp / Social scrapers
   const defaultLogo = `${proto}://${host}/marathi-title-gold-glow.png`;
@@ -122,7 +170,10 @@ module.exports = async (req, res) => {
     img = `${proto}://${host}${img.startsWith('/') ? img : '/' + img}`;
   }
 
-  // Clean short redirect target
+  // Resolve redirecting images to direct 200 OK CDN URLs for WhatsApp preview
+  img = await resolveDirectImageUrl(img);
+
+  // Clean short redirect target for users clicking in browser
   const targetUrl = id 
     ? `${proto}://${host}/?article=${encodeURIComponent(id)}`
     : `${proto}://${host}/`;
@@ -130,6 +181,8 @@ module.exports = async (req, res) => {
   const canonicalUrl = id 
     ? `${proto}://${host}/article/${encodeURIComponent(id)}`
     : `${proto}://${host}/`;
+
+  const imgType = img.endsWith('.png') ? 'image/png' : (img.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
 
   const html = `<!DOCTYPE html>
 <html lang="mr" prefix="og: https://ogp.me/ns#">
@@ -149,7 +202,7 @@ module.exports = async (req, res) => {
   <meta property="og:description" content="${escapeHtml(desc)}">
   <meta property="og:image" content="${img}">
   <meta property="og:image:secure_url" content="${img}">
-  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:type" content="${imgType}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="${escapeHtml(title)}">
@@ -164,8 +217,7 @@ module.exports = async (req, res) => {
   <meta name="twitter:image" content="${img}">
   <meta name="twitter:image:alt" content="${escapeHtml(title)}">
   
-  <!-- Instant redirection for browser visits -->
-  <meta http-equiv="refresh" content="0;url=${targetUrl}">
+  <!-- Instant redirection for browser visitors (crawlers stay to read meta tags) -->
   <script>
     window.location.replace('${targetUrl}');
   </script>
@@ -177,7 +229,8 @@ module.exports = async (req, res) => {
       <img src="${img}" alt="${escapeHtml(title)}" style="width: 100%; height: auto; object-fit: cover; display: block; border-radius: 8px;">
     </div>
     <h3 style="color: #FFFFFF; font-size: 1.15rem; line-height: 1.5; margin: 15px 0;">${escapeHtml(title)}</h3>
-    <p style="color: #94A3B8; font-size: 0.9rem;">बातमी उघडत आहे, कृपया प्रतीक्षा करा...</p>
+    <p style="color: #CBD5E1; font-size: 0.95rem; line-height: 1.6; margin: 15px 0;">${escapeHtml(desc)}</p>
+    <p style="color: #94A3B8; font-size: 0.85rem;">बातमी उघडत आहे, कृपया प्रतीक्षा करा...</p>
     <a href="${targetUrl}" style="display: inline-block; margin-top: 15px; padding: 10px 24px; background: #E11D48; color: #FFFFFF; text-decoration: none; border-radius: 6px; font-weight: 600;">थेट बातमी उघडा →</a>
   </div>
 </body>
