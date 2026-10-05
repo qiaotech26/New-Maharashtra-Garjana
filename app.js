@@ -2,152 +2,16 @@
    NEW MAHARASHTRA GARJANA - FULLY FUNCTIONAL NEWS PLATFORM ENGINE
    ========================================================================== */
 
-// ── INITIAL DATASET (PERMANENT & LOCALSTORAGE PERSISTED) ──
+// ── INITIAL DATASET (MUST START COMPLETELY EMPTY FOR PRODUCTION) ──
 const defaultNewsData = {
-  ticker: [
-    "महाराष्ट्र सरकारने नव्या सर्वसमावेशक विकास योजनेची घोषणा केली",
-    "राज्यात मान्सूनचा जोरदार पुनरागमन; प्रमुख धरणे १००% भरण्याच्या मार्गावर",
-    "मुंबई शेअर बाजारात ऐतिहासिक तेजी; सेन्सेक्स ८५,००० च्या नव्या उच्चांकावर",
-    "पुण्यात नव्या मेट्रो मार्गाचे मुख्यमंत्री व उपमुख्यमंत्र्यांच्या हस्ते भव्य उद्घाटन",
-    "विधानसभेत क्रीडा धोरण आणि रोजगाराबाबत ऐतिहासिक विधेयक एकमताने मंजूर",
-    "शेती क्षेत्रासाठी ५,००० कोटी रुपयांच्या विशेष अनुदानाची घोषणा"
-  ],
-  latest: [
-    {
-      id: 101,
-      cat: 'महाराष्ट्र',
-      title: 'महाराष्ट्रात नव्या विकास योजनांची मुख्यमंत्र्यांकडून घोषणा, राज्याचा कायापालट होणार',
-      desc: 'राज्य सरकारने आज एक महत्त्वाकांक्षी विकास योजना जाहीर केली असून यामुळे लाखो नागरिकांना थेट लाभ होणार आहे. मुख्यमंत्र्यांनी पत्रकार परिषदेत सविस्तर माहिती दिली.',
-      content: `<p>राज्य सरकारने आज महाराष्ट्रातील ग्रामीण व शहरी भागाचा कायापालट करण्यासाठी तब्बल १५,००० कोटी रुपयांच्या विशेष विकास आराखड्याची घोषणा केली आहे. मुख्यमंत्र्यांनी घेतलेल्या पत्रकार परिषदेत या योजनेचे मुख्य पैलू मांडले.</p>
-      <p>या योजनेअंतर्गत रस्ते विकास, आरोग्य सुविधांमध्ये सुधारणा, रोजगार निर्मिती आणि कृषी क्षेत्रासाठी नवीन तंत्रज्ञानाचा वापर यावर विशेष भर दिला जाणार आहे. राज्यातील प्रत्येक जिल्ह्यासाठी स्वतंत्र विकास निधीची तरतूद करण्यात आली आहे.</p>
-      <blockquote>"महाराष्ट्रातील प्रत्येक नागरिकापर्यंत विकासाची फळे पोहोचवणे हेच आमच्या सरकारचे मुख्य ध्येय आहे." — मुख्यमंत्री</blockquote>
-      <p>विरोधी पक्षांनी देखील या योजनेचे स्वागत केले असून, योजनेची अंमलबजावणी पारदर्शक पद्धतीने व्हावी अशी अपेक्षा व्यक्त केली आहे.</p>`,
-      time: '१० ऑगस्ट २०२६ • १०:३० AM',
-      author: 'न्यू महाराष्ट्र गर्जना विशेष प्रतिनिधी',
-      img: 'https://picsum.photos/800/480?random=101',
-      isHero: true,
-      isBreaking: true
-    },
-    {
-      id: 102,
-      cat: 'राजकारण',
-      title: 'विधानसभेत विरोधकांचा जोरदार गदारोळ; महत्त्वाचे अर्थ विधेयक चर्चेविना मंजूर',
-      desc: 'विधानसभेचे पावसाळी अधिवेशन सध्या चांगलेच तापले असून विरोधकांनी विविध मुद्द्यांवरून सरकारला घेरण्याचा प्रयत्न केला.',
-      content: `<p>विधानसभेत आज सलग तिसऱ्या दिवशी विरोधकांनी विविध जनहितार्थ मुद्द्यांवरून जोरदार आंदोलन केले. गदारोळातच राज्य सरकारने चालू आर्थिक वर्षाचे महत्त्वाचे पुरवणी मागण्यांचे विधेयक मंजूर करून घेतले.</p><p>अध्यक्ष महोदयांनी सभागृहाचे कामकाज उद्यापर्यंत तहकूब केले आहे.</p>`,
-      time: '१० ऑगस्ट २०२६ • ०९:१५ AM',
-      author: 'राजकीय संपादक',
-      img: 'https://picsum.photos/800/480?random=102',
-      isHero: false,
-      isBreaking: true
-    },
-    {
-      id: 103,
-      cat: 'मुंबई',
-      title: 'मुंबईत नव्या सागरी किनाऱ्याच्या रस्त्याचे (Coastal Road) ३ रे टप्पे पूर्ण',
-      desc: 'मुंबईतील वाहतूक कोंडीवर मात करण्यासाठी हा प्रकल्प अतिशय महत्त्वपूर्ण ठरणार असून प्रवासाचा वेळ ४५ मिनिटांनी कमी होणार आहे.',
-      content: `<p>मुंबईच्या कोस्टल रोड प्रकल्पाचा तिसरा टप्पा आता वाहतुकीसाठी सज्ज झाला आहे. पालिका आयुक्तांनी दिलेल्या माहितीनुसार, या नवीन मार्गामुळे दक्षिण मुंबई आणि बांद्रा दरम्यानचा प्रवास अत्यंत जलद आणि सुखकर होणार आहे.</p>`,
-      time: '१० ऑगस्ट २०२६ • ०८:०० AM',
-      author: 'मुंबई प्रतिनिधी',
-      img: 'https://picsum.photos/800/480?random=103',
-      isHero: false,
-      isBreaking: false
-    },
-    {
-      id: 104,
-      cat: 'क्रीडा',
-      title: 'टी-२० मालिकेत भारताची ऑस्ट्रेलियावर ५ गडी राखून मात; रोहित शर्मा सामनावीर',
-      desc: 'भारतीय संघाने उत्कृष्ट फलंदाजीच्या जोरावर ऑस्ट्रेलियाने दिलेले १९५ धावांचे आव्हान १७ षटकांतच लीलया पार केले.',
-      content: `<p>मेलबर्न क्रिकेट ग्राऊंडवर खेळल्या गेलेल्या अटीतटीच्या सामन्यात भारताने ऑस्ट्रेलियाचा पराभव केला. कर्णधार रोहित शर्माने अवघ्या ४२ चेंडूंत ८५ धावांची धडाकेबाज खेळी केली.</p>`,
-      time: '०९ ऑगस्ट २०२६ • १०:४५ PM',
-      author: 'क्रीडा प्रतिनिधी',
-      img: 'https://picsum.photos/800/480?random=104',
-      isHero: false,
-      isBreaking: false
-    },
-    {
-      id: 105,
-      cat: 'पुणे',
-      title: 'पुण्यात आंतरराष्ट्रीय दर्जाचे नवीन आयटी पार्क उभारण्यास मंत्रिमंडळाची मंजुरी',
-      desc: 'या प्रकल्पामुळे पुण्यातील सुमारे ५०,००० तरुण अभियंत्यांना रोजगाराच्या नवीन संधी उपलब्ध होतील.',
-      content: `<p>पुण्यातील हिंजवडी टप्पा ४ जवळ आणखी एक विशाल आयटी पार्क उभारण्यात येणार आहे. विदेशी कंपन्यांनी यात सुमारे २,००० कोटींची गुंतवणूक करण्याची तयारी दर्शवली आहे.</p>`,
-      time: '०९ ऑगस्ट २०२६ • ०६:३० PM',
-      author: 'पुणे प्रतिनिधी',
-      img: 'https://picsum.photos/800/480?random=105',
-      isHero: false,
-      isBreaking: false
-    },
-    {
-      id: 106,
-      cat: 'व्यापार',
-      title: 'शेअर बाजारात विक्रमी तेजी; आयटी आणि बँक शेअर्समध्ये मोठी खरेदी',
-      desc: 'परदेशी गुंतवणूकदारांनी भारतीय बाजारात पुन्हा मोठा विश्वास दाखवत जोरदार खरेदी सुरू केली आहे.',
-      content: `<p>बॉम्बे स्टॉक एक्सचेंज (BSE) चे निर्देशांक आज ५०० अंकांनी वधारले. भारतीय अर्थव्यवस्थेच्या मजबूत पायाभूत स्थितीमुळे गुंतवणूकदार उत्साही आहेत.</p>`,
-      time: '०९ ऑगस्ट २०२६ • ०४:१५ PM',
-      author: 'अर्थशास्त्र विभाग',
-      img: 'https://picsum.photos/800/480?random=106',
-      isHero: false,
-      isBreaking: false
-    },
-    {
-      id: 107,
-      cat: 'तंत्रज्ञान',
-      title: 'भारतीय इस्रो (ISRO) ची नवी मोहीम यशस्वी; सूर्याचा अभ्यास करणारा उपग्रह स्थापित',
-      desc: 'भारताच्या अंतराळ संशोधनात आणखी एक सुवर्ण अध्याय जोडला गेला असून जगभरातून कौतुक होत आहे.',
-      content: `<p>भारतीय अंतराळ संशोधन संस्थेने आज सकाळी श्रीहरिकोटा येथून आपल्या शक्तिशाली रॉकेटच्या साहाय्याने सूर्य मोहिमेचा दुसरा टप्पा यशस्वीरीत्या पूर्ण केला.</p>`,
-      time: '०९ ऑगस्ट २०२६ • ०१:२० PM',
-      author: 'विज्ञान प्रतिनिधी',
-      img: 'https://picsum.photos/800/480?random=107',
-      isHero: false,
-      isBreaking: false
-    },
-    {
-      id: 108,
-      cat: 'मनोरंजन',
-      title: 'राष्ट्रीय चित्रपट पुरस्कारात मराठी चित्रपटाचा डंका; "मातीचा सुगंध" चित्रपटाला सर्वोत्कृष्ट पुरस्कार',
-      desc: 'दिल्लीत आयोजित विशेष सोहळ्यात राष्ट्रपतींच्या हस्ते पुरस्कार प्रदान करण्यात आले.',
-      content: `<p>मराठी चित्रपटसृष्टीसाठी आजचा दिवस अत्यंत अभिमानास्पद ठरला आहे. ग्रामीण पार्श्वभूमीवर आधारित दिग्दर्शक महेश मांजरेकरांच्या चित्रपटाला सुवर्णकमळ मिळाले.</p>`,
-      time: '०८ ऑगस्ट २०२६ • ०८:५० PM',
-      author: 'मनोरंजन विभाग',
-      img: 'https://picsum.photos/800/480?random=108',
-      isHero: false,
-      isBreaking: false
-    }
-  ],
-  maharashtra: [
-    { id: 201, cat: 'महाराष्ट्र', title: 'नागपूर मेट्रोच्या दुसऱ्या टप्प्यासाठी १,५०० कोटींचा निधी मंजूर', time: '२ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=201' },
-    { id: 202, cat: 'महाराष्ट्र', title: 'कोकणात पर्यटन विकासासाठी हॉस्पिटॅलिटी धोरण लागू करणार', time: '४ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=202' },
-    { id: 203, cat: 'महाराष्ट्र', title: 'नाशिकमध्ये द्राक्ष बागायतदारांसाठी नवीन निर्यात अनुदान', time: '५ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=203' },
-    { id: 204, cat: 'महाराष्ट्र', title: 'छत्रपती संभाजीनगर येथे आंतरराष्ट्रीय ड्राय पोर्ट उभारणार', time: '६ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=204' }
-  ],
-  politics: [
-    { id: 301, cat: 'राजकारण', title: 'स्थानिक स्वराज्य संस्थांच्या निवडणुका लवकरच; राज्य निवडणूक आयोगाची तयारी', time: '१ तासापूर्वी', img: 'https://picsum.photos/400/260?random=301' },
-    { id: 302, cat: 'राजकारण', title: 'महाआघाडी आणि महायुतीत जागावाटपाची चर्चा अंतिम टप्प्यात', time: '३ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=302' },
-    { id: 303, cat: 'राजकारण', title: 'राज्यपाल महोदयांची विविध पक्षांच्या ज्येष्ठ नेत्यांसोबत बैठक', time: '४ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=303' },
-    { id: 304, cat: 'राजकारण', title: 'नव्या पक्षाध्यक्षांची घोषणा; कार्यकर्त्यांमध्ये उत्साह', time: '७ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=304' }
-  ],
-  sports: [
-    { id: 401, cat: 'क्रीडा', title: 'आयपीएल (IPL 2026) साठी खेळाडूंचा लिलाव पुढील महिन्यात मुंबईत', time: '२ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=401' },
-    { id: 402, cat: 'क्रीडा', title: 'पुण्याच्या युवा कुस्तीपटूने आशियाई स्पर्धेत पटकावले सुवर्णपदक', time: '४ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=402' },
-    { id: 403, cat: 'क्रीडा', title: 'प्रो कबड्डी लीग: पुणेरी पलटनची शानदार घोडदौड सुरूच', time: '६ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=403' }
-  ],
-  entertainment: [
-    { id: 501, cat: 'मनोरंजन', title: 'झी मराठी पुरस्कार सोहळा: सर्वोत्कृष्ट मालिका म्हणून "तुझ्यात जीव रंगला" ची निवड', time: '३ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=501' },
-    { id: 502, cat: 'मनोरंजन', title: 'सुबोध भावे आणि मुक्ता बर्वे यांच्या नवीन नाटकाचा शुभारंभ', time: '५ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=502' },
-    { id: 503, cat: 'मनोरंजन', title: 'ओटीटी प्लॅटफॉर्मवर नव्या मराठी थ्रिलर वेब सिरीजचा जलवा', time: '८ तासांपूर्वी', img: 'https://picsum.photos/400/260?random=503' }
-  ],
-  videos: [
-    { id: 601, title: 'मुख्यमंत्र्यांची विशेष मुलाखत - महाराष्ट्राच्या विकासाचा रोडमॅप', dur: '14:20', img: 'https://picsum.photos/400/250?random=601' },
-    { id: 602, title: 'मुंबई लोकल ट्रेन अपडेट: नव्या एसी गाड्यांची सुरुवात', dur: '06:45', img: 'https://picsum.photos/400/250?random=602' },
-    { id: 603, title: 'पुण्यातील मान्सूनचा मनमोहक व्ह्यू - विहंगम दृश्ये', dur: '04:15', img: 'https://picsum.photos/400/250?random=603' },
-    { id: 604, title: 'क्रिकेट विश्लेषण: टी-२० मालिकेत भारताचा ऐतिहासिक विजय', dur: '18:30', img: 'https://picsum.photos/400/250?random=604' }
-  ],
-  photos: [
-    { id: 701, caption: 'गेटवे ऑफ इंडिया आणि मुंबईतील मान्सूनचे विहंगम दृश्य', img: 'https://picsum.photos/400/300?random=701' },
-    { id: 702, caption: 'पुण्यातील ऐतिहासिक शनिवारवाडा परिसर रोषणाईने उजळला', img: 'https://picsum.photos/400/300?random=702' },
-    { id: 703, caption: 'कोकणातील निसर्गरम्य हिरवळ आणि धबधबे', img: 'https://picsum.photos/400/300?random=703' },
-    { id: 704, caption: 'नागपुरातील जगप्रसिद्ध संत्रा बागांचा नयनरम्य नजराणा', img: 'https://picsum.photos/400/300?random=704' },
-    { id: 705, caption: 'पंढरपूर आषाढी वारी: लाखो वारकऱ्यांचा अथांग भक्तिसागर', img: 'https://picsum.photos/400/300?random=705' }
-  ]
+  ticker: [],
+  latest: [],
+  maharashtra: [],
+  politics: [],
+  sports: [],
+  entertainment: [],
+  videos: [],
+  photos: []
 };
 
 // GLOBAL APP STATE
@@ -159,12 +23,50 @@ let appState = {
   commentsMap: {}
 };
 
+// Helper: Sanitize state to purge any legacy demo data from client browser cache
+function sanitizeNewsData(data) {
+  if (!data || typeof data !== 'object') {
+    return JSON.parse(JSON.stringify(defaultNewsData));
+  }
+
+  const isDemoItem = (item) => {
+    if (!item) return true;
+    const title = (item.title || '').toLowerCase();
+    const img = (item.img || '').toLowerCase();
+    const id = Number(item.id);
+
+    if (img.includes('picsum.photos')) return true;
+    if (title.includes('नव्या विकास योजनांची') || title.includes('विधानसभेत विरोधकांचा') || title.includes('सागरी किनाऱ्याच्या')) return true;
+    if ([101, 102, 103, 104, 105, 106, 107, 108, 201, 202, 203, 204, 301, 302, 303, 304, 401, 402, 403, 501, 502, 503, 601, 602, 603, 604, 701, 702, 703, 704, 705].includes(id)) return true;
+    return false;
+  };
+
+  const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
+  categories.forEach(cat => {
+    if (Array.isArray(data[cat])) {
+      data[cat] = data[cat].filter(item => !isDemoItem(item));
+    } else {
+      data[cat] = [];
+    }
+  });
+
+  if (Array.isArray(data.ticker)) {
+    data.ticker = data.ticker.filter(t => !t.includes('सर्वसमावेशक विकास योजनेची'));
+  } else {
+    data.ticker = [];
+  }
+
+  return data;
+}
+
 // ── LOCAL STORAGE ENGINE ──
 function loadStateFromStorage() {
   try {
     const saved = localStorage.getItem('nmg_news_data');
     if (saved) {
-      appState.news = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      appState.news = sanitizeNewsData(parsed);
+      saveStateToStorage();
     } else {
       appState.news = JSON.parse(JSON.stringify(defaultNewsData));
       saveStateToStorage();
@@ -218,7 +120,10 @@ function renderTicker() {
   const track = document.getElementById('tickerTrack');
   if (!track || !appState.news) return;
 
-  const items = appState.news.ticker || defaultNewsData.ticker;
+  const items = (appState.news.ticker && appState.news.ticker.length > 0)
+    ? appState.news.ticker
+    : ["ताज्या घडामोडींसाठी न्यू महाराष्ट्र गर्जनाशी जोडलेले रहा."];
+
   const html = items.map(t => `
     <div class="ticker-item" onclick="openTickerArticle('${t.replace(/'/g, "\\'")}')">
       <span class="ticker-bullet">●</span>
@@ -226,48 +131,85 @@ function renderTicker() {
     </div>
   `).join('');
 
-  // Duplicate for seamless infinite loop scroll
   track.innerHTML = html + html;
 }
 
 // 2. HERO SECTION
 function renderHeroSection() {
-  const heroCard = document.getElementById('heroCard');
+  const mainContainer = document.getElementById('heroMainContainer');
   const sideContainer = document.getElementById('heroSideContainer');
   if (!appState.news) return;
 
-  // Find hero article or fallback to first latest
   const allArticles = [...(appState.news.latest || [])];
   const heroArticle = allArticles.find(a => a.isHero) || allArticles[0];
 
-  if (heroArticle && heroCard) {
-    document.getElementById('heroImg').src = heroArticle.img;
-    document.getElementById('heroCatBadge').textContent = heroArticle.cat || 'महाराष्ट्र';
-    document.getElementById('heroTitle').textContent = heroArticle.title;
-    document.getElementById('heroDesc').textContent = heroArticle.desc || heroArticle.title;
-    document.getElementById('heroTime').textContent = `📅 ${heroArticle.time || '१० ऑगस्ट २०२६'}`;
-    heroCard.onclick = () => openArticle(heroArticle.id);
+  if (!heroArticle) {
+    if (mainContainer) {
+      mainContainer.innerHTML = `
+        <article class="hero-card empty-hero-card" style="padding:40px 24px; text-align:center; background:var(--bg-card, #ffffff); border-radius:12px; border:1px dashed #cbd5e1; box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+          <div style="font-size:2.8rem; margin-bottom:12px;">📰</div>
+          <h2 class="hero-title" style="font-size:1.3rem; color:#1e293b; margin-bottom:8px; font-weight:700;">सध्या कोणतीही बातमी प्रकाशित झालेली नाही</h2>
+          <p class="hero-desc" style="color:#64748b; font-size:0.95rem; margin-bottom:0;">ॲडमिन पोर्टलमधून पहिली बातमी प्रकाशित करा. बातमी प्रकाशित होताच ती मुख्य पानावर दिसेल.</p>
+        </article>
+      `;
+    }
+    if (sideContainer) {
+      sideContainer.innerHTML = '';
+      sideContainer.style.display = 'none';
+    }
+    return;
   }
 
-  // Render Side Stack (up to 4 items excluding hero)
   if (sideContainer) {
-    const sideArticles = allArticles.filter(a => a.id !== heroArticle?.id).slice(0, 4);
-    sideContainer.innerHTML = sideArticles.map(a => `
-      <div class="side-news-card" onclick="openArticle(${a.id})">
-        <img src="${a.img}" alt="${a.title}" loading="lazy">
-        <div class="side-news-body">
-          <span class="side-cat">${a.cat}</span>
-          <h3>${a.title}</h3>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-            <span class="side-time">${a.time}</span>
-            <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${a.id})" title="व्हॉट्सॲपवर बातमी शेअर करा">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-              <span>शेअर</span>
-            </button>
+    sideContainer.style.display = '';
+  }
+
+  if (mainContainer) {
+    mainContainer.innerHTML = `
+      <article class="hero-card" id="heroCard" onclick="openArticle(${heroArticle.id})" itemscope itemtype="https://schema.org/NewsArticle">
+        <div class="hero-img-wrap">
+          <img src="${heroArticle.img}" alt="${heroArticle.title} - न्यू महाराष्ट्र गर्जना" class="hero-img" id="heroImg" loading="eager" width="800" height="450" itemprop="image">
+          <div class="hero-overlay-gradient"></div>
+          <div class="hero-cat-badge" id="heroCatBadge" itemprop="articleSection">${heroArticle.cat || 'महाराष्ट्र'}</div>
+          ${heroArticle.isBreaking ? '<div class="live-badge" id="heroLiveBadge">🔴 LIVE</div>' : ''}
+        </div>
+        <div class="hero-body">
+          <h2 class="hero-title" id="heroTitle" itemprop="headline">${heroArticle.title}</h2>
+          <p class="hero-desc" id="heroDesc" itemprop="description">${(heroArticle.desc || heroArticle.title).replace(/<[^>]*>/g, '')}</p>
+          <div class="hero-meta">
+            <span class="meta-time" id="heroTime"><time datetime="2026-08-10" itemprop="datePublished">📅 ${heroArticle.time || ''}</time></span>
+            <span class="meta-author" itemprop="author">✍️ ${heroArticle.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी'}</span>
+            <span class="read-more-link" aria-label="सविस्तर बातमी वाचा">सविस्तर वाचा →</span>
           </div>
         </div>
-      </div>
-    `).join('');
+      </article>
+    `;
+  }
+
+  if (sideContainer) {
+    const sideArticles = allArticles.filter(a => String(a.id) !== String(heroArticle.id)).slice(0, 4);
+    if (sideArticles.length === 0) {
+      sideContainer.innerHTML = '';
+      sideContainer.style.display = 'none';
+    } else {
+      sideContainer.style.display = '';
+      sideContainer.innerHTML = sideArticles.map(a => `
+        <div class="side-news-card" onclick="openArticle(${a.id})">
+          <img src="${a.img}" alt="${a.title}" loading="lazy">
+          <div class="side-news-body">
+            <span class="side-cat">${a.cat}</span>
+            <h3>${a.title}</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <span class="side-time">${a.time}</span>
+              <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${a.id})" title="व्हॉट्सॲपवर बातमी शेअर करा">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                <span>शेअर</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
   }
 }
 
@@ -278,25 +220,25 @@ function renderLatestGrid() {
 
   let articles = [...(appState.news.latest || [])];
 
-  // Filter if specific category or search active
   if (appState.activeCategory !== 'सर्व' && appState.activeCategory !== 'थेट') {
     articles = articles.filter(a => a.cat === appState.activeCategory);
   }
 
   if (appState.searchTerm) {
     const term = appState.searchTerm.toLowerCase();
-    articles = articles.filter(a => 
-      a.title.toLowerCase().includes(term) || 
+    articles = articles.filter(a =>
+      a.title.toLowerCase().includes(term) ||
       (a.desc && a.desc.toLowerCase().includes(term)) ||
-      a.cat.toLowerCase().includes(term)
+      (a.cat && a.cat.toLowerCase().includes(term))
     );
   }
 
   if (articles.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #64748B;">
-      <h3>या वर्गात कोणतीही बातमी सापडली नाही.</h3>
-      <p>कृपया वेगळा शोध शब्द वापरा किंवा सर्व बातम्या पाहा.</p>
-    </div>`;
+    grid.innerHTML = `
+      <div style="grid-column: 1/-1; padding: 36px 20px; text-align: center; color: #64748B; background: var(--bg-card, #ffffff); border-radius: 10px; border: 1px dashed #cbd5e1;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; color: #1e293b;">सध्या कोणत्याही ताज्या बातम्या उपलब्ध नाहीत.</h3>
+        <p style="font-size: 0.9rem; margin: 0;">ॲडमिन पोर्टलमधून बातमी जोडल्यानंतर ती येथे प्रकाशित होईल.</p>
+      </div>`;
     return;
   }
 
@@ -310,8 +252,8 @@ function renderLatestGrid() {
         <h3 itemprop="headline">${n.title}</h3>
         <p class="news-card-excerpt" itemprop="description">${(n.desc || '').replace(/<[^>]*>/g, '').slice(0, 95)}${(n.desc || '').length > 95 ? '...' : ''}</p>
         <div class="news-card-meta">
-          <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
-          <span>👁️ ${Math.floor(100 + n.id * 12)} वाचले</span>
+          <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${n.time || ''}</time></span>
+          <span>👁️ ${Math.floor(100 + (Number(n.id) || 1) * 12)} वाचले</span>
           <button class="card-wa-share-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${n.id})" title="व्हॉट्सॲपवर बातमी शेअर करा">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
             <span>शेअर</span>
@@ -326,15 +268,48 @@ function renderLatestGrid() {
 function renderCategorySections() {
   if (!appState.news) return;
 
-  renderListContainer('maharashtraNews', appState.news.maharashtra || []);
-  renderListContainer('politicsNews', appState.news.politics || []);
-  renderListContainer('sportsNews', appState.news.sports || []);
-  renderListContainer('entertainmentNews', appState.news.entertainment || []);
+  const maharashtra = appState.news.maharashtra || [];
+  const politics = appState.news.politics || [];
+  const sports = appState.news.sports || [];
+  const entertainment = appState.news.entertainment || [];
+
+  renderListContainer('maharashtraNews', maharashtra, 'maharashtraSection');
+  renderListContainer('politicsNews', politics, 'politicsSection');
+
+  const mahPolWrapper = document.getElementById('maharashtraPoliticsSection');
+  if (mahPolWrapper) {
+    if (maharashtra.length === 0 && politics.length === 0) {
+      mahPolWrapper.style.display = 'none';
+    } else {
+      mahPolWrapper.style.display = '';
+    }
+  }
+
+  renderListContainer('sportsNews', sports, 'sportsSection');
+  renderListContainer('entertainmentNews', entertainment, 'entertainmentSection');
+
+  const sportsEntWrapper = document.getElementById('sportsEntertainmentSection');
+  if (sportsEntWrapper) {
+    if (sports.length === 0 && entertainment.length === 0) {
+      sportsEntWrapper.style.display = 'none';
+    } else {
+      sportsEntWrapper.style.display = '';
+    }
+  }
 }
 
-function renderListContainer(containerId, items) {
+function renderListContainer(containerId, items, sectionId) {
   const el = document.getElementById(containerId);
+  const section = sectionId ? document.getElementById(sectionId) : null;
   if (!el) return;
+
+  if (items.length === 0) {
+    if (section) section.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+
+  if (section) section.style.display = '';
 
   el.innerHTML = items.map((n, i) => `
     <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})" itemscope itemtype="https://schema.org/NewsArticle">
@@ -346,20 +321,30 @@ function renderListContainer(containerId, items) {
           <span class="list-news-time"><time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
           <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${n.id})" title="व्हॉट्सॲपवर शेअर करा">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-            <span>शेअर</span>
-          </button>
-        </div>
+          <span>शेअर</span>
+        </button>
       </div>
-    </article>
+    </div>
+  </article>
   `).join('');
 }
 
 // 5. VIDEO GRID
 function renderVideoGrid() {
+  const section = document.getElementById('videoSection');
   const grid = document.getElementById('videoGrid');
   if (!grid || !appState.news) return;
 
-  grid.innerHTML = (appState.news.videos || []).map((v, i) => `
+  const videos = appState.news.videos || [];
+  if (videos.length === 0) {
+    if (section) section.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  if (section) section.style.display = '';
+
+  grid.innerHTML = videos.map((v, i) => `
     <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModal('${v.title}', '${v.dur}', '${v.img}')" itemscope itemtype="https://schema.org/VideoObject">
       <div class="video-thumb-wrap">
         <img class="video-thumb" src="${v.img}" alt="${v.title} - न्यू महाराष्ट्र गर्जना व्हिडिओ" loading="lazy" width="360" height="200" itemprop="thumbnailUrl">
@@ -378,10 +363,20 @@ function renderVideoGrid() {
 
 // 6. PHOTO GRID
 function renderPhotoGrid() {
+  const section = document.getElementById('photoSection');
   const grid = document.getElementById('photoGrid');
   if (!grid || !appState.news) return;
 
-  grid.innerHTML = (appState.news.photos || []).map((p, i) => `
+  const photos = appState.news.photos || [];
+  if (photos.length === 0) {
+    if (section) section.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  if (section) section.style.display = '';
+
+  grid.innerHTML = photos.map((p, i) => `
     <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModal('${p.caption}', '${p.img}')" itemscope itemtype="https://schema.org/ImageObject">
       <img src="${p.img}" alt="${p.caption} - न्यू महाराष्ट्र गर्जना फोटो" loading="lazy" width="400" height="260" itemprop="contentUrl">
       <div class="photo-overlay">
@@ -397,7 +392,7 @@ const DEFAULT_SEO = {
   title: "न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana) | ताज्या मराठी बातम्या, राजकारण, चालू घडामोडी & लाईव्ह अपडेट्स",
   desc: "महाराष्ट्रातील अग्रगण्य मराठी डिजिटल वृत्तसेवा. ताज्या बातम्या, राजकारण, मुंबई, पुणे, देश-विदेश, क्रीडा, मनोरंजन, व्यापार, तंत्रज्ञान आणि थेट लाईव्ह अपडेट्स.",
   canonical: "https://newmaharashtragarjana.com/",
-  image: "https://picsum.photos/1200/630?random=101"
+  image: "https://newmaharashtragarjana.com/logo.jpg"
 };
 
 const CATEGORY_SEO = {
@@ -576,7 +571,7 @@ function filterCategory(catName, event) {
     } else if (window.location.hash && !window.location.hash.startsWith('#article-')) {
       history.replaceState(null, '', window.location.pathname);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // Show/Hide section blocks if specific category selected
   const heroSection = document.getElementById('heroSection');
@@ -621,9 +616,9 @@ function updateCategoryStatusBar() {
     bar.style.display = 'block';
     const nameEl = document.getElementById('currentCategoryText') || document.getElementById('activeCategoryName');
     const countEl = document.getElementById('categoryCountBadge') || document.getElementById('activeCategoryCount');
-    
+
     if (nameEl) nameEl.textContent = appState.searchTerm ? `शोध: "${appState.searchTerm}"` : appState.activeCategory;
-    
+
     let count = 0;
     const allLatest = appState.news ? appState.news.latest : [];
     if (appState.searchTerm) {
@@ -632,7 +627,7 @@ function updateCategoryStatusBar() {
     } else {
       count = allLatest.filter(a => a.cat === appState.activeCategory).length;
     }
-    
+
     if (countEl) countEl.textContent = `(${count} बातम्या)`;
   } else {
     bar.style.display = 'none';
@@ -648,7 +643,7 @@ function openArticle(id) {
   // Find article across all categories
   let article = null;
   const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
-  
+
   for (const cat of categories) {
     if (appState.news && appState.news[cat]) {
       const found = appState.news[cat].find(a => String(a.id) === String(id));
@@ -660,22 +655,32 @@ function openArticle(id) {
   }
 
   if (!article) {
-    // Check if details were passed in the URL parameters from WhatsApp/social share
+    // Check if details were passed in URL parameters from social share
     const urlParams = new URLSearchParams(window.location.search);
     const paramTitle = urlParams.get('title');
     const paramImg = urlParams.get('img');
     const paramDesc = urlParams.get('desc');
 
-    article = {
-      id: id,
-      cat: 'महाराष्ट्र',
-      title: paramTitle || 'विशेष बातमी सविस्तर',
-      desc: paramDesc || 'या बातमीचा सविस्तर तपशील उपलब्ध आहे.',
-      content: `<p>${paramDesc || 'न्यू महाराष्ट्र गर्जना डिजिटल वृत्तपत्रात आपले स्वागत आहे. या बातमीबाबत अधिक सविस्तर माहिती लवकरच अद्ययावत केली जात आहे.'}</p>`,
-      time: 'ताज्या घडामोडी',
-      author: 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
-      img: paramImg || `https://picsum.photos/800/480?random=${id}`
-    };
+    if (paramTitle) {
+      article = {
+        id: id,
+        cat: 'महाराष्ट्र',
+        title: paramTitle,
+        desc: paramDesc || paramTitle,
+        content: `<p>${paramDesc || paramTitle}</p>`,
+        time: 'ताज्या घडामोडी',
+        author: 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
+        img: paramImg || 'https://newmaharashtragarjana.com/logo.jpg'
+      };
+    } else {
+      if (typeof showToast === 'function') {
+        showToast('माफ करा, ही बातमी उपलब्ध नाही किंवा हटवण्यात आली आहे.', 'warning');
+      }
+      try {
+        history.replaceState(null, '', window.location.pathname);
+      } catch (e) {}
+      return;
+    }
   }
 
   // Update SEO for this individual article
@@ -692,7 +697,7 @@ function openArticle(id) {
   injectDynamicNewsArticleSchema(article);
   try {
     history.pushState({ articleId: id }, '', `?article=${id}`);
-  } catch (e) {}
+  } catch (e) { }
 
   const modal = document.getElementById('articleModal');
   const container = document.getElementById('articleReaderContent');
@@ -795,7 +800,7 @@ function closeArticleModal() {
       const cleanUrl = window.location.origin + window.location.pathname;
       history.replaceState(null, '', cleanUrl);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // Stop speech synthesis if playing
   if ('speechSynthesis' in window) {
@@ -890,8 +895,8 @@ function shareArticle(platform, id) {
           img: article.img,
           desc: cleanDesc
         })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
   }
 
   // Always use the canonical production domain for share URLs.
@@ -942,7 +947,7 @@ function formatWhatsAppShareMessage(title, shareUrl) {
     if (saved) {
       Object.assign(tpl, JSON.parse(saved));
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // Build message parts — only include group/channel/contact if real values are set
   let msg = `${title}\n${shareUrl}`;
@@ -1321,7 +1326,7 @@ function loadFirebaseTabValues() {
       if (document.getElementById('fbSenderId')) document.getElementById('fbSenderId').value = cfg.messagingSenderId || '';
       if (document.getElementById('fbAppId')) document.getElementById('fbAppId').value = cfg.appId || '';
     }
-  } catch (e) {}
+  } catch (e) { }
 
   loadShareTemplateValues();
 }
@@ -1331,7 +1336,7 @@ function loadShareTemplateValues() {
   try {
     const saved = localStorage.getItem('nmg_share_template_config');
     if (saved) Object.assign(tpl, JSON.parse(saved));
-  } catch (e) {}
+  } catch (e) { }
 
   if (document.getElementById('shareTplGroupHeading')) document.getElementById('shareTplGroupHeading').value = tpl.groupHeading;
   if (document.getElementById('shareTplGroupLink')) document.getElementById('shareTplGroupLink').value = tpl.groupLink;
@@ -1670,8 +1675,8 @@ function runNewsEditorialEngine(autoPublishAfter = false) {
   const scoreStatusEl = document.getElementById('editorialScoreStatus');
   if (scoreEl) scoreEl.textContent = analysis.qualityScore;
   if (scoreStatusEl) {
-    scoreStatusEl.textContent = analysis.qualityScore >= 95 
-      ? 'उत्कृष्ट - पत्रकारितेच्या मानकांनुसार परिपूर्ण' 
+    scoreStatusEl.textContent = analysis.qualityScore >= 95
+      ? 'उत्कृष्ट - पत्रकारितेच्या मानकांनुसार परिपूर्ण'
       : 'चांगले - व्याकरण सुधारणा यशस्वीरीत्या पूर्ण';
   }
 
@@ -1865,7 +1870,7 @@ function executePublishArticle() {
   saveStateToStorage();
 
   // Sync to Cloud Firestore and Serverless backup so all viewers & devices see it instantly
-  const targetArticle = editId 
+  const targetArticle = editId
     ? appState.news.latest.find(a => a.id === parseInt(editId))
     : appState.news.latest[0];
 
@@ -1941,14 +1946,53 @@ function editArticle(id) {
 
 function deleteArticle(id) {
   if (confirm('ही बातमी खरोखर हटवायची आहे का?')) {
-    appState.news.latest = appState.news.latest.filter(a => a.id !== id);
+    const stringId = String(id);
+    const numId = Number(id);
+
+    const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
+    categories.forEach(cat => {
+      if (appState.news && Array.isArray(appState.news[cat])) {
+        appState.news[cat] = appState.news[cat].filter(a => String(a.id) !== stringId && Number(a.id) !== numId);
+      }
+    });
+
     saveStateToStorage();
+
     if (typeof deleteArticleFromFirestore === 'function') {
       deleteArticleFromFirestore(id);
     }
+
+    try {
+      fetch('/api/sync-article', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: stringId, action: 'delete' })
+      }).catch(() => {});
+    } catch (e) {}
+
     renderAll();
     renderAdminTable();
-    showToast('बातमी हटवली गेली.', 'info');
+    showToast('बातमी पूर्णपणे हटवली गेली.', 'info');
+  }
+}
+
+function purgeAllDemoNews() {
+  if (confirm('🚨 तुम्ही सर्व बातम्या व चाचणी डेटा हटवू इच्छिता का? हा निर्णय बदलता येणार नाही.')) {
+    appState.news = {
+      ticker: [],
+      latest: [],
+      maharashtra: [],
+      politics: [],
+      sports: [],
+      entertainment: [],
+      videos: [],
+      photos: []
+    };
+    saveStateToStorage();
+    localStorage.removeItem('nmg_news_data');
+    renderAll();
+    renderAdminTable();
+    showToast('🧹 सर्व जुना डेटा व चाचणी बातम्या पूर्णपणे साफ केल्या.', 'success');
   }
 }
 
@@ -1968,10 +2012,10 @@ function handleFileUpload(event) {
   const file = event.target.files[0];
   if (file) {
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       document.getElementById('articleImgInput').value = e.target.result;
       previewArticleImage();
-      
+
       // Auto-upload in background so WhatsApp / Social media crawlers have a public HTTPS URL
       showToast('☁️ फोटो ऑनलाइन सुरक्षित केला जात आहे...', 'info');
       fetch('/api/upload', {
@@ -1979,15 +2023,15 @@ function handleFileUpload(event) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: e.target.result })
       })
-      .then(r => r.json())
-      .then(res => {
-        if (res && res.url) {
-          document.getElementById('articleImgInput').value = res.url;
-          previewArticleImage();
-          showToast('✅ फोटो ऑनलाइन जतन झाला (WhatsApp शेअरिंगसाठी तयार)!', 'success');
-        }
-      })
-      .catch(() => {});
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.url) {
+            document.getElementById('articleImgInput').value = res.url;
+            previewArticleImage();
+            showToast('✅ फोटो ऑनलाइन जतन झाला (WhatsApp शेअरिंगसाठी तयार)!', 'success');
+          }
+        })
+        .catch(() => { });
     };
     reader.readAsDataURL(file);
   }
@@ -2336,7 +2380,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', () => {
     const scrollY = window.scrollY;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    
+
     if (progress && docHeight > 0) {
       const pct = (scrollY / docHeight) * 100;
       progress.style.width = `${pct}%`;
@@ -2446,7 +2490,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCloudSync();
 
   // ── PREVENT TRANSLATION HOVER HIGHLIGHTS & WHITE PATCHES ──
-  document.addEventListener('mouseover', function(e) {
+  document.addEventListener('mouseover', function (e) {
     if (!e.target) return;
     const target = e.target;
     if (target.classList && (target.classList.contains('goog-text-highlight') || target.className?.includes?.('VIpgJd'))) {
@@ -2493,18 +2537,18 @@ function changeTitleFont(fontClass) {
 // ── MULTI-LANGUAGE TRANSLATION ENGINE (MASTER DATA) ──
 const MASTER_LANG_DATA = {
   'mr': {
-    'home': 'मुख्यपान', 'maharashtra': 'महाराष्ट्र', 'politics': 'राजकारण', 'mumbai': 'मुंबई', 
-    'pune': 'पुणे', 'national': 'देश', 'world': 'जग', 'sports': 'क्रीडा', 'entertainment': 'मनोरंजन', 
+    'home': 'मुख्यपान', 'maharashtra': 'महाराष्ट्र', 'politics': 'राजकारण', 'mumbai': 'मुंबई',
+    'pune': 'पुणे', 'national': 'देश', 'world': 'जग', 'sports': 'क्रीडा', 'entertainment': 'मनोरंजन',
     'business': 'व्यापार', 'health': 'आरोग्य', 'tech': 'तंत्रज्ञान', 'video': 'व्हिडिओ', 'photo': 'फोटो'
   },
   'en': {
-    'home': 'Home', 'maharashtra': 'Maharashtra', 'politics': 'Politics', 'mumbai': 'Mumbai', 
-    'pune': 'Pune', 'national': 'National', 'world': 'World', 'sports': 'Sports', 'entertainment': 'Entertainment', 
+    'home': 'Home', 'maharashtra': 'Maharashtra', 'politics': 'Politics', 'mumbai': 'Mumbai',
+    'pune': 'Pune', 'national': 'National', 'world': 'World', 'sports': 'Sports', 'entertainment': 'Entertainment',
     'business': 'Business', 'health': 'Health', 'tech': 'Tech', 'video': 'Videos', 'photo': 'Photos'
   },
   'hi': {
-    'home': 'मुख्य पृष्ठ', 'maharashtra': 'महाराष्ट्र', 'politics': 'राजनीति', 'mumbai': 'मुंबई', 
-    'pune': 'पुणे', 'national': 'देश', 'world': 'विश्व', 'sports': 'खेल', 'entertainment': 'मनोरंजन', 
+    'home': 'मुख्य पृष्ठ', 'maharashtra': 'महाराष्ट्र', 'politics': 'राजनीति', 'mumbai': 'मुंबई',
+    'pune': 'पुणे', 'national': 'देश', 'world': 'विश्व', 'sports': 'खेल', 'entertainment': 'मनोरंजन',
     'business': 'व्यापार', 'health': 'स्वास्थ्य', 'tech': 'तकनीक', 'video': 'वीडियो', 'photo': 'तस्वीरें'
   }
 };
@@ -2540,11 +2584,11 @@ function translatePageLanguage(langCode, isInit = false) {
   const select = document.querySelector('select.goog-te-combo');
   if (select) {
     select.value = langCode === 'mr' ? 'mr' : langCode;
-    
+
     // Setting value to original language may not trigger properly, sometimes we need to set it to ''
     // First try the language code, then dispatch. If it's mr, set to ''.
     if (langCode === 'mr') {
-        select.value = '';
+      select.value = '';
     }
     select.dispatchEvent(new Event('change'));
   } else if (!isInit) {

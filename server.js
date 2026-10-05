@@ -186,7 +186,7 @@ const server = http.createServer((req, res) => {
           // Set og:type to article
           modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:type["']\s+content=["'][^"']*["']/i, `<meta property="og:type" content="article"`);
 
-                    // Replace og:title
+          // Replace og:title
           modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']/i, `<meta property="og:title" content="${title}"`);
 
           // Replace og:description
@@ -211,6 +211,24 @@ const server = http.createServer((req, res) => {
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']/i, `<meta name="twitter:title" content="${title}"`);
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']/i, `<meta name="twitter:description" content="${desc}"`);
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']/i, `<meta name="twitter:image" content="${imageUrl}"`);
+
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=UTF-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          });
+          res.end(modifiedHtml);
+          return;
+        } else {
+          const fallbackTitle = escapeHtml("न्यू महाराष्ट्र गर्जना | विशेष मराठी बातमी");
+          const fallbackDesc = escapeHtml("माफ करा, ही बातमी उपलब्ध नाही किंवा हटवण्यात आली आहे. ताज्या घडामोडींसाठी न्यू महाराष्ट्र गर्जना पोर्टला भेट द्या.");
+          const fallbackImage = ensureAbsoluteUrl('/logo.jpg', host);
+
+          let modifiedHtml = html;
+          modifiedHtml = modifiedHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${fallbackTitle}</title>`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']description["']\s+content=["'][^"']*["']/i, `<meta name="description" content="${fallbackDesc}"`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']/i, `<meta property="og:title" content="${fallbackTitle}"`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']/i, `<meta property="og:description" content="${fallbackDesc}"`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']/i, `<meta property="og:image" content="${fallbackImage}"`);
 
           res.writeHead(200, {
             'Content-Type': 'text/html; charset=UTF-8',
