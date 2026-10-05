@@ -91,10 +91,7 @@
 
     function getArticleUrl(article) {
         var id = article && (article.id !== undefined ? article.id : '');
-        var origin = (window.location && window.location.origin && window.location.origin.startsWith('http'))
-            ? window.location.origin
-            : SITE_BASE.replace(/\/$/, '');
-        return origin + '/?p=' + encodeURIComponent(id);
+        return 'https://newmaharashtragarjana.com/?p=' + encodeURIComponent(id);
     }
 
     function buildShareMessage(article, templateOverride) {
@@ -381,35 +378,73 @@
         }
 
         var payload = buildShareJSON(article);
+        var captionText = payload.caption;
 
         generateNewsPosterCanvas(article, function (blob, dataUrl) {
             if (blob) {
-                var file = new File([blob], 'news_' + article.id + '.jpg', { type: 'image/jpeg' });
+                var file = new File([blob], 'news-' + article.id + '.jpg', { type: 'image/jpeg' });
 
-                // Web Share API Level 2 (Mobile check)
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Web Share API Level 2 (Mobile check: pass ONLY files and text, NO title/url)
+                if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                     navigator.share({
                         files: [file],
-                        text: payload.caption
-                    }).catch(function () {
-                        fallbackShareDesktop(blob, article.id, payload);
+                        text: captionText
+                    }).then(function () {
+                        // Success! Image + caption sent together as ONE message. Do not open wa.me or download.
+                    }).catch(function (err) {
+                        if (err && (err.name === 'AbortError' || err.code === 20)) {
+                            // User cancelled share dialog silently - do nothing!
+                            return;
+                        }
+                        fallbackShareDesktop(blob, article.id, captionText);
                     });
                     return;
                 }
             }
-            fallbackShareDesktop(blob, article.id, payload);
+            fallbackShareDesktop(blob, article.id, captionText);
         });
 
         return payload;
     };
 
-    function fallbackShareDesktop(blob, id, payload) {
-        if (blob) {
-            downloadBlob(blob, 'news_' + id + '.jpg');
+    function fallbackShareDesktop(blob, id, captionText) {
+        // a) Copy caption to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(captionText).catch(function () { });
         }
-        window.open(payload.whatsappUrl, '_blank', 'noopener');
+
+        // b) Download image automatically
+        if (blob) {
+            downloadBlob(blob, 'news-' + id + '.jpg');
+        }
+
+        // Try copying image to clipboard if supported by browser
+        if (blob && navigator.clipboard && window.ClipboardItem) {
+            try {
+                var img = new Image();
+                img.onload = function () {
+                    var c = document.createElement('canvas');
+                    c.width = img.width;
+                    c.height = img.height;
+                    var ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    c.toBlob(function (pngBlob) {
+                        if (pngBlob) {
+                            var item = new ClipboardItem({ 'image/png': pngBlob });
+                            navigator.clipboard.write([item]).catch(function () { });
+                        }
+                    }, 'image/png');
+                };
+                img.src = URL.createObjectURL(blob);
+            } catch (e) { }
+        }
+
+        // c) Open WhatsApp Web/App WITHOUT ?text= (prevents creating 2 separate text messages)
+        window.open('https://web.whatsapp.com', '_blank', 'noopener');
+
+        // d) Show clear Marathi toast
         if (typeof window.showToast === 'function') {
-            window.showToast('फोटो डाउनलोड झाला – व्हॉट्सॲपमध्ये अटॅच करा', 'info');
+            window.showToast('फोटो व कॅप्शन कॉपी झाले – व्हॉट्सॲपमध्ये आधी फोटो पेस्ट करा, नंतर कॅप्शन पेस्ट करा', 'info');
         }
     }
 
@@ -424,7 +459,7 @@
 
         if (!article) return null;
         var captionText = buildShareMessage(article);
-        if (navigator.clipboard) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(captionText).then(function () {
                 if (typeof window.showToast === 'function') {
                     window.showToast('📋 व्हॉट्सॲप मेसेज आणि लिंक्स कॉपी झाल्या!', 'success');
@@ -441,7 +476,7 @@
 
         if (!article) return null;
         var json = JSON.stringify(buildShareJSON(article), null, 2);
-        if (navigator.clipboard) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(json);
             if (typeof window.showToast === 'function') {
                 window.showToast('✅ JSON पेलोड कॉपी झाला!', 'success');

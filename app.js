@@ -905,8 +905,8 @@ function shareArticle(platform, id) {
     } catch (e) { }
   }
 
-  const origin = 'https://www.newmaharashtragarjana.com';
-  const shareUrl = `${origin}/article/${id}`;
+  const origin = 'https://newmaharashtragarjana.com';
+  const shareUrl = `${origin}/?p=${id}`;
   const targetArticle = article || { id: id, title: title, url: shareUrl, img: document.querySelector('.article-main-image-box img')?.src };
 
   if (platform === 'whatsapp') {
