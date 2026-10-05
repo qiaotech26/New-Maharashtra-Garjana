@@ -686,7 +686,7 @@ function openArticle(id) {
   // Update SEO for this individual article
   const origin = window.location.origin;
   const pathname = window.location.pathname.replace(/\/+$/, '') || '';
-  const articleUrl = `${origin}${pathname}/?article=${article.id}`;
+  const articleUrl = `${origin}${pathname}/?p=${article.id}`;
 
   setSEOMetadata(
     `${article.title} - न्यू महाराष्ट्र गर्जना | New Maharashtra Garjana`,
@@ -696,7 +696,7 @@ function openArticle(id) {
   );
   injectDynamicNewsArticleSchema(article);
   try {
-    history.pushState({ articleId: id }, '', `?article=${id}`);
+    history.pushState({ articleId: id }, '', `?p=${id}`);
   } catch (e) { }
 
   const modal = document.getElementById('articleModal');
@@ -749,6 +749,9 @@ function openArticle(id) {
         </button>
         <button class="share-btn share-image" onclick="shareArticle('image', ${article.id})" title="बातमीचा फोटो पोस्टर शेअर करा" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: white;">
           <span>🖼️ फोटोसह शेअर</span>
+        </button>
+        <button class="share-btn share-caption" onclick="shareArticle('caption', ${article.id})" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
+          <span>📋 कॅप्शन कॉपी करा</span>
         </button>
         <button class="share-btn share-facebook" onclick="shareArticle('facebook', ${article.id})" title="फेसबुकवर शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
@@ -917,22 +920,27 @@ function shareArticle(platform, id) {
     if (window.NMGShare && typeof window.NMGShare.shareNewsImage === 'function') {
       window.NMGShare.shareNewsImage(targetArticle);
     }
+  } else if (platform === 'caption') {
+    if (window.NMGShare && typeof window.NMGShare.copyCaption === 'function') {
+      window.NMGShare.copyCaption(targetArticle);
+    }
   } else if (platform === 'facebook') {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
   } else if (platform === 'instagram') {
     window.open('https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==', '_blank');
   } else if (platform === 'copy') {
-    const shareText = (window.NMGShare && typeof window.NMGShare.buildShareMessage === 'function')
-      ? window.NMGShare.buildShareMessage(targetArticle)
-      : formatWhatsAppShareMessage(title, shareUrl);
-
-    navigator.clipboard.writeText(shareText).then(() => {
-      showToast('🔗 बातमीचा WhatsApp मेसेज व लिंक कॉपी झाली!', 'success');
-    }).catch(() => {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        showToast('बातमीची लिंक कॉपी झाली!', 'success');
+    if (window.NMGShare && typeof window.NMGShare.copyCaption === 'function') {
+      window.NMGShare.copyCaption(targetArticle);
+    } else {
+      const shareText = formatWhatsAppShareMessage(title, shareUrl);
+      navigator.clipboard.writeText(shareText).then(() => {
+        showToast('🔗 बातमीचा WhatsApp मेसेज व लिंक कॉपी झाली!', 'success');
+      }).catch(() => {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast('बातमीची लिंक कॉपी झाली!', 'success');
+        });
       });
-    });
+    }
   }
 }
 
@@ -2430,9 +2438,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // URL Deep-Linking for Articles, Categories, and Static Info Pages
   function handleUrlDeepLink() {
-    // 1. Check URL query parameters (e.g. ?article=101 or ?id=101 from WhatsApp/Social sharing)
+    // 1. Check URL query parameters (e.g. ?p=101, ?article=101 or ?id=101 from WhatsApp/Social sharing)
     const urlParams = new URLSearchParams(window.location.search);
-    const articleQuery = urlParams.get('article') || urlParams.get('id');
+    const articleQuery = urlParams.get('p') || urlParams.get('article') || urlParams.get('id');
     if (articleQuery) {
       const artId = parseInt(articleQuery, 10);
       if (artId) {
