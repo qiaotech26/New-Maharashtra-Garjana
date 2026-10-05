@@ -894,20 +894,19 @@ function shareArticle(platform, id) {
     } catch (e) {}
   }
 
-  // Always use the production domain for share URLs to avoid sharing Vercel preview or localhost URLs
+  // Always use the canonical production domain for share URLs.
+  // IMPORTANT: The URL must be clean (no ?img= params) because Vercel's rewrite
+  //   /article/:id  →  /api/share?id=:id
+  // drops any extra query params from the original path segment.
+  // Article metadata is synced separately via /api/sync-article so the server
+  // always has the article data when WhatsApp's crawler requests the URL.
   const origin = 'https://www.newmaharashtragarjana.com';
-
-  let shareUrl = `${origin}/article/${id}`;
-  // For custom or new articles with custom images, ensure thumbnail query parameter is attached for crawlers
-  const isDefaultArticle = defaultNewsData && Object.values(defaultNewsData).some(list => Array.isArray(list) && list.some(a => String(a.id) === String(id)));
-  if (!isDefaultArticle && article?.img && !article.img.startsWith('data:')) {
-    shareUrl += `?img=${encodeURIComponent(article.img)}`;
-  }
+  const shareUrl = `${origin}/article/${id}`;
 
   const shareText = formatWhatsAppShareMessage(title, shareUrl);
 
   if (platform === 'whatsapp') {
-    // Direct synchronous window.open - NEVER blocked by browser popup blockers!
+    // Direct synchronous window.open — never blocked by browser popup blockers!
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   } else if (platform === 'facebook') {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');

@@ -26,10 +26,12 @@ const MIME_TYPES = {
 };
 
 function getArticlesMap() {
+  const map = {};
+
+  // 1. Load news_data.json (built-in default articles)
   try {
     if (fs.existsSync(NEWS_FILE)) {
       const data = JSON.parse(fs.readFileSync(NEWS_FILE, 'utf8'));
-      const map = {};
       const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
       categories.forEach(cat => {
         if (Array.isArray(data[cat])) {
@@ -38,12 +40,28 @@ function getArticlesMap() {
           });
         }
       });
-      return map;
     }
   } catch (e) {
     console.error('Error reading news_data.json:', e);
   }
-  return {};
+
+  // 2. Load articles_store.json (admin-published articles synced via /api/sync-article)
+  //    These override news_data.json entries with the same ID.
+  try {
+    const storeFile = path.join(BASE_DIR, 'articles_store.json');
+    if (fs.existsSync(storeFile)) {
+      const store = JSON.parse(fs.readFileSync(storeFile, 'utf8'));
+      Object.keys(store).forEach(id => {
+        if (store[id] && store[id].id) {
+          map[String(id)] = store[id];
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Error reading articles_store.json:', e);
+  }
+
+  return map;
 }
 
 function escapeHtml(str) {
@@ -105,7 +123,7 @@ const server = http.createServer((req, res) => {
             newsData = JSON.parse(fs.readFileSync(NEWS_FILE, 'utf8'));
           }
           if (!Array.isArray(newsData.latest)) newsData.latest = [];
-          
+
           const existingIdx = newsData.latest.findIndex(a => a.id === article.id);
           if (existingIdx !== -1) {
             newsData.latest[existingIdx] = article;
@@ -150,19 +168,26 @@ const server = http.createServer((req, res) => {
           const title = escapeHtml(article.title || 'न्यू महाराष्ट्र गर्जना बातमी');
           const desc = escapeHtml(article.desc || article.caption || 'महाराष्ट्रातील ताज्या व महत्त्वाच्या घडामोडी सविस्तर वाचा.');
           const imageUrl = ensureAbsoluteUrl(article.img, host);
+          const canonUrl = `https://${host}/article/${article.id}`;
           const shareUrl = `https://${host}/?article=${article.id}`;
 
           // Inject specific article OpenGraph and Twitter tags for WhatsApp & Social preview
           let modifiedHtml = html;
 
+          // Replace canonical link
+          modifiedHtml = modifiedHtml.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']/i, `<link rel="canonical" href="${canonUrl}"`);
+
           // Replace title
           modifiedHtml = modifiedHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title} - न्यू महाराष्ट्र गर्जना | New Maharashtra Garjana</title>`);
-          
+
           // Replace meta description
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']description["']\s+content=["'][^"']*["']/i, `<meta name="description" content="${desc}"`);
 
-          // Replace og:title
-          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']/i, `<meta property="og:title" content="${title} - न्यू महाराष्ट्र गर्जना"`);
+          // Set og:type to article
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:type["']\s+content=["'][^"']*["']/i, `<meta property="og:type" content="article"`);
+
+                    // Replace og:title
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']/i, `<meta property="og:title" content="${title}"`);
 
           // Replace og:description
           modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']/i, `<meta property="og:description" content="${desc}"`);
@@ -180,10 +205,10 @@ const server = http.createServer((req, res) => {
           }
 
           // Replace og:url
-          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']/i, `<meta property="og:url" content="${shareUrl}"`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']/i, `<meta property="og:url" content="${canonUrl}"`);
 
           // Replace twitter tags
-          modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']/i, `<meta name="twitter:title" content="${title} - न्यू महाराष्ट्र गर्जना"`);
+          modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']/i, `<meta name="twitter:title" content="${title}"`);
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']/i, `<meta name="twitter:description" content="${desc}"`);
           modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']/i, `<meta name="twitter:image" content="${imageUrl}"`);
 
