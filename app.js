@@ -907,6 +907,7 @@ function shareArticle(platform, id) {
   const targetArticle = article || { id: id, title: title, url: shareUrl, img: document.querySelector('.article-main-image-box img')?.src };
 
   if (platform === 'whatsapp') {
+    // Combined: fetches news photo + pastes caption (links) as ONE WhatsApp message
     if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
       window.NMGShare.shareOnWhatsApp(targetArticle);
     } else {
@@ -914,10 +915,12 @@ function shareArticle(platform, id) {
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
     }
   } else if (platform === 'image' || platform === 'poster') {
-    if (window.NMGShare && typeof window.NMGShare.shareNewsImage === 'function') {
-      window.NMGShare.shareNewsImage(targetArticle);
+    // Same combined photo + caption share
+    if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
+      window.NMGShare.shareOnWhatsApp(targetArticle);
     }
   } else if (platform === 'caption') {
+    // Copy caption text (links) only — no image
     if (window.NMGShare && typeof window.NMGShare.copyCaption === 'function') {
       window.NMGShare.copyCaption(targetArticle);
     }
@@ -926,6 +929,7 @@ function shareArticle(platform, id) {
   } else if (platform === 'instagram') {
     window.open('https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==', '_blank');
   } else if (platform === 'copy') {
+    // Copy caption text (links) only
     if (window.NMGShare && typeof window.NMGShare.copyCaption === 'function') {
       window.NMGShare.copyCaption(targetArticle);
     } else {
