@@ -17,9 +17,9 @@
     // Defaults matching Tab 5 of admin form & user requirements
     var DEFAULT_TEMPLATE = {
         groupHeading: 'पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा',
-        groupLink: 'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3',
+        groupLink: 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t',
         channelHeading: 'ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
-        channelLink: 'https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q',
+        channelLink: 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t',
         facebookUrl: 'https://www.facebook.com/share/1BwdzGiPf8/',
         instagramUrl: 'https://www.instagram.com/newmaharashtragarjana',
         youtubeUrl: 'https://youtube.com/@umeshbharatpatil',

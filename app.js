@@ -948,12 +948,12 @@ function shareArticle(platform, id) {
 const defaultWhatsAppShareTemplate = {
   groupHeading: 'महाराष्ट्रातील ताज्या बातम्यांसाठी आजच आमचा व्हाट्सएप ग्रुप जॉईन करा',
   groupEmoji: '🟢',
-  groupLink: '',
+  groupLink: 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t',
   channelHeading: 'न्यू महाराष्ट्र गर्जनाच्या ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
   channelFollowText: 'Follow न्यू महाराष्ट्र गर्जना channel on WhatsApp:',
-  channelLink: '',
+  channelLink: 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t',
   contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
-  contactPhone: ''
+  contactPhone: '8530664576'
 };
 
 function formatWhatsAppShareMessage(title, shareUrl) {
