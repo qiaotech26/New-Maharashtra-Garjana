@@ -1,12 +1,11 @@
 /* ============================================================
    whatsapp-share.js  —  New Maharashtra Garjana
-   Shares the NEWS PHOTO + caption (links) as ONE WhatsApp message.
+   Generates a combined POSTER (news photo on top + info panel below)
+   and shares it as ONE single WhatsApp image message.
 
    Load AFTER firebase-config.js and BEFORE app.js:
      <script src="whatsapp-share.js"></script>
      <script src="app.js"></script>
-
-   Use on a button:  onclick="shareOnWhatsApp(123)"   or   shareOnWhatsApp(articleObject)
    ============================================================ */
 
 (function () {
@@ -16,7 +15,6 @@
     var SITE_BASE = 'https://newmaharashtragarjana.com/';
     var WA_LINK = 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t';
 
-    // Old / wrong links that must never be used (ignored if found in saved settings)
     var OLD_LINKS = [
         'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3',
         'https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q',
@@ -30,15 +28,9 @@
         channelFollowText: 'Follow न्यू महाराष्ट्र गर्जना channel on WhatsApp:',
         channelLink: WA_LINK,
         contactLabel: 'बातम्या जाहिरातींकरता संपर्क:',
-        contactPhone: '8530664576',
-        includeSocial: false,
-        facebook: 'https://www.facebook.com/share/1BwdzGiPf8/',
-        instagram: 'https://www.instagram.com/newmaharashtragarjana',
-        youtube: 'https://youtube.com/@umeshbharatpatil',
-        website: 'https://newmaharashtragarjana.com/'
+        contactPhone: '8530664576'
     };
 
-    // Admin form field id -> template key
     var FIELD_MAP = {
         shareTplGroupHeading: 'groupHeading',
         shareTplGroupLink: 'groupLink',
@@ -48,15 +40,14 @@
         shareTplContactPhone: 'contactPhone'
     };
 
-    /* ---------------- template storage ---------------- */
+    /* ── template storage ── */
 
     function getShareTemplate() {
         var saved = {};
         try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { saved = {}; }
         var tpl = Object.assign({}, DEFAULT_TEMPLATE, saved);
-        // Ignore old/wrong saved links — always force the correct channel link
-        if (OLD_LINKS.indexOf(tpl.groupLink) !== -1) tpl.groupLink = DEFAULT_TEMPLATE.groupLink;
-        if (OLD_LINKS.indexOf(tpl.channelLink) !== -1) tpl.channelLink = DEFAULT_TEMPLATE.channelLink;
+        if (OLD_LINKS.indexOf(tpl.groupLink) !== -1) tpl.groupLink = WA_LINK;
+        if (OLD_LINKS.indexOf(tpl.channelLink) !== -1) tpl.channelLink = WA_LINK;
         return tpl;
     }
 
@@ -66,7 +57,7 @@
             if (window.db && typeof window.db.collection === 'function') {
                 window.db.collection('settings').doc('shareTemplate').set(tpl, { merge: true });
             }
-        } catch (e) { /* localStorage is enough */ }
+        } catch (e) { }
     }
 
     function loadShareTemplateConfigIntoForm() {
@@ -77,7 +68,6 @@
         });
     }
 
-    // <form onsubmit="handleSaveShareTemplateConfig(event)"> in index.html
     window.handleSaveShareTemplateConfig = function (event) {
         if (event) event.preventDefault();
         var tpl = getShareTemplate();
@@ -89,39 +79,31 @@
         toast('✅ शेअर फॉरमॅट सेव्ह झाला.');
     };
 
-    /* ---------------- caption + JSON ---------------- */
+    /* ── helpers ── */
 
     function getArticleUrl(article) {
         if (article && article.url) return article.url;
         return SITE_BASE + '?p=' + encodeURIComponent(article ? article.id : '');
     }
 
+    function getImageUrl(article) {
+        if (!article) return '';
+        return article.image || article.img || article.imageUrl || article.photo || article.thumbnail || '';
+    }
+
     function buildCaption(article, override) {
         var t = Object.assign({}, getShareTemplate(), override || {});
         var title = (article && article.title ? String(article.title) : '').trim();
-
         var blocks = [
             title + '\n🔗 पूर्ण बातमी वाचा: ' + getArticleUrl(article),
             '*' + t.groupHeading + '*\n' + t.groupLink,
-            '*' + t.channelHeading + '*\n' + t.channelFollowText + '\n' + t.channelLink
+            '*' + t.channelHeading + '*\n' + t.channelFollowText + '\n' + t.channelLink,
+            '*' + t.contactLabel + '*\n*' + t.contactPhone + '*'
         ];
-
-        if (t.includeSocial) {
-            blocks.push(
-                '*आम्हाला फॉलो करा:*\n' +
-                '📘 Facebook: ' + t.facebook + '\n' +
-                '📸 Instagram: ' + t.instagram + '\n' +
-                '▶️ YouTube: ' + t.youtube + '\n' +
-                '🌐 Website: ' + t.website
-            );
-        }
-
-        blocks.push('*' + t.contactLabel + '*\n*' + t.contactPhone + '*');
         return blocks.join('\n\n');
     }
 
-    // Alias so app.js buildShareMessage calls still work
-    var buildShareMessage = buildCaption;
+    var buildShareMessage = buildCaption; // alias for app.js
 
     function buildShareJSON(article, override) {
         var t = Object.assign({}, getShareTemplate(), override || {});
@@ -131,79 +113,156 @@
             title: article && article.title,
             url: getArticleUrl(article),
             image: getImageUrl(article),
-            group: { heading: t.groupHeading, link: t.groupLink },
-            channel: { heading: t.channelHeading, followText: t.channelFollowText, link: t.channelLink },
-            socialLinks: { facebook: t.facebook, instagram: t.instagram, youtube: t.youtube, website: t.website },
-            contact: { label: t.contactLabel, phone: t.contactPhone },
             caption: caption,
             whatsappUrl: 'https://wa.me/?text=' + encodeURIComponent(caption)
         };
     }
 
-    /* ---------------- image helpers ---------------- */
+    /* ── canvas poster: news photo ON TOP + info panel BELOW = ONE image ── */
 
-    function getImageUrl(article) {
-        if (!article) return '';
-        return article.image || article.img || article.imageUrl || article.photo || article.thumbnail || '';
+    function wrapText(ctx, text, maxWidth) {
+        var words = text.split(/\s+/);
+        var lines = [], cur = '';
+        words.forEach(function (w) {
+            var test = cur ? cur + ' ' + w : w;
+            if (ctx.measureText(test).width > maxWidth && cur) {
+                lines.push(cur);
+                cur = w;
+            } else {
+                cur = test;
+            }
+        });
+        if (cur) lines.push(cur);
+        return lines;
     }
 
-    // Load any image URL → JPEG Blob (safe for WhatsApp)
-    function imageToJpegBlob(src) {
-        return new Promise(function (resolve, reject) {
-            if (!src) return reject(new Error('no image'));
+    function generateCombinedPosterBlob(article) {
+        return new Promise(function (resolve) {
+            var t = getShareTemplate();
+            var src = getImageUrl(article);
+
+            var W = 1080, H = 1350;           // 4:5 — perfect for WhatsApp/Stories
+            var imgH = Math.round(H * 0.60); // top 60 % = news photo
+            var infoY = imgH;
+            var infoH = H - imgH;            // bottom 40 % = info panel
+
+            var canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            var ctx = canvas.getContext('2d');
+
+            function drawInfoPanel() {
+                /* ── dark background ── */
+                ctx.fillStyle = '#0E1A2B';
+                ctx.fillRect(0, infoY, W, infoH);
+
+                /* ── red top accent bar ── */
+                ctx.fillStyle = '#B80F0A';
+                ctx.fillRect(0, infoY, W, 7);
+
+                /* ── gold divider ── */
+                ctx.fillStyle = '#F59E0B';
+                ctx.fillRect(0, infoY + 7, W, 3);
+
+                var pad = 38;
+                var maxW = W - pad * 2;
+                var y = infoY + 44;
+
+                /* ── article title ── */
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'left';
+                ctx.font = 'bold 34px "Noto Sans Devanagari", Arial, sans-serif';
+                var titleLines = wrapText(ctx, article.title || '', maxW);
+                titleLines.slice(0, 2).forEach(function (line) {
+                    ctx.fillText(line, pad, y);
+                    y += 44;
+                });
+
+                /* ── article URL ── */
+                var articleUrl = getArticleUrl(article);
+                ctx.fillStyle = '#60A5FA';
+                ctx.font = '22px "Courier New", monospace';
+                ctx.fillText('🔗 ' + articleUrl, pad, y + 6);
+                y += 40;
+
+                /* ── separator ── */
+                ctx.strokeStyle = '#1E3A5F';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(pad, y + 8);
+                ctx.lineTo(W - pad, y + 8);
+                ctx.stroke();
+                y += 28;
+
+                /* ── WhatsApp channel block ── */
+                ctx.fillStyle = '#4ADE80';
+                ctx.font = 'bold 24px "Noto Sans Devanagari", Arial, sans-serif';
+                var grpLines = wrapText(ctx, '📲 ' + t.groupHeading, maxW);
+                grpLines.slice(0, 2).forEach(function (line) {
+                    ctx.fillText(line, pad, y);
+                    y += 32;
+                });
+                ctx.fillStyle = '#86EFAC';
+                ctx.font = '21px "Courier New", monospace';
+                ctx.fillText(t.channelLink, pad, y);
+                y += 36;
+
+                /* ── contact ── */
+                ctx.fillStyle = '#FCD34D';
+                ctx.font = 'bold 28px "Noto Sans Devanagari", Arial, sans-serif';
+                ctx.fillText('📞 ' + t.contactLabel + '  ' + t.contactPhone, pad, y);
+
+                /* ── branding footer ── */
+                ctx.fillStyle = '#64748B';
+                ctx.font = '18px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('न्यू महाराष्ट्र गर्जना  |  newmaharashtragarjana.com', W / 2, H - 18);
+                ctx.textAlign = 'left';
+
+                canvas.toBlob(function (b) { resolve(b); }, 'image/jpeg', 0.93);
+            }
+
+            if (!src) {
+                /* no image – fill with solid gradient and draw info */
+                var grad = ctx.createLinearGradient(0, 0, 0, imgH);
+                grad.addColorStop(0, '#0F172A');
+                grad.addColorStop(1, '#1E3A5F');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, imgH);
+                drawInfoPanel();
+                return;
+            }
+
             var img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = function () {
-                try {
-                    var maxW = 1280;
-                    var w = img.naturalWidth, h = img.naturalHeight;
-                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-                    var c = document.createElement('canvas');
-                    c.width = w; c.height = h;
-                    var ctx = c.getContext('2d');
-                    ctx.fillStyle = '#fff';
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.drawImage(img, 0, 0, w, h);
-                    c.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob failed')); }, 'image/jpeg', 0.9);
-                } catch (e) { reject(e); }
+                /* cover-fit the news photo into the top section */
+                var aspect = img.naturalWidth / img.naturalHeight;
+                var targetAspect = W / imgH;
+                var rw, rh, rx, ry;
+                if (aspect > targetAspect) {
+                    rh = imgH; rw = imgH * aspect;
+                    rx = -(rw - W) / 2; ry = 0;
+                } else {
+                    rw = W; rh = W / aspect;
+                    rx = 0; ry = -(rh - imgH) / 2;
+                }
+                ctx.save();
+                ctx.rect(0, 0, W, imgH);
+                ctx.clip();
+                ctx.drawImage(img, rx, ry, rw, rh);
+                ctx.restore();
+                drawInfoPanel();
             };
-            img.onerror = function () { reject(new Error('image load failed')); };
+            img.onerror = function () { drawInfoPanel(); };
             img.src = src;
         });
     }
 
-    // Fallback plain fetch if canvas is CORS-blocked
-    function fetchBlob(src) {
-        return fetch(src, { mode: 'cors' }).then(function (r) {
-            if (!r.ok) throw new Error('fetch failed');
-            return r.blob();
-        });
-    }
-
-    function getImageBlob(article) {
-        var src = getImageUrl(article);
-        return imageToJpegBlob(src).catch(function () { return fetchBlob(src); });
-    }
-
-    function imageToBlobPng(jpegBlob, cb) {
-        var url = URL.createObjectURL(jpegBlob);
-        var img = new Image();
-        img.onload = function () {
-            var c = document.createElement('canvas');
-            c.width = img.naturalWidth; c.height = img.naturalHeight;
-            c.getContext('2d').drawImage(img, 0, 0);
-            c.toBlob(function (b) { URL.revokeObjectURL(url); cb(b); }, 'image/png');
-        };
-        img.src = url;
-    }
-
-    /* ---------------- UI helpers ---------------- */
+    /* ── UI helpers ── */
 
     function toast(msg) {
-        if (typeof window.showToast === 'function') {
-            window.showToast(msg, 'info');
-            return;
-        }
+        if (typeof window.showToast === 'function') { window.showToast(msg, 'info'); return; }
         var el = document.createElement('div');
         el.textContent = msg;
         el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;' +
@@ -214,9 +273,7 @@
     }
 
     function copyText(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(text);
-        }
+        if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
         var ta = document.createElement('textarea');
         ta.value = text; document.body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); } catch (e) { }
@@ -233,7 +290,6 @@
     }
 
     function findArticleById(id) {
-        // Search appState first (used by app.js)
         if (window.appState && window.appState.news) {
             var cats = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
             for (var c = 0; c < cats.length; c++) {
@@ -245,91 +301,74 @@
                 }
             }
         }
-        // Fallback globals
-        var globalList = window.newsData || window.articles || window.NEWS_DATA || [];
-        for (var i = 0; i < globalList.length; i++) {
-            if (String(globalList[i].id) === String(id)) return globalList[i];
+        var g = window.newsData || window.articles || window.NEWS_DATA || [];
+        for (var i = 0; i < g.length; i++) {
+            if (String(g[i].id) === String(id)) return g[i];
         }
         return null;
     }
 
-    /* ---------------- MAIN: share news photo + caption as ONE message ---------------- */
+    /* ── MAIN SHARE: ONE combined poster image (photo top + info bottom) ── */
 
     window.shareOnWhatsApp = async function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
-            ? articleOrId
-            : findArticleById(articleOrId);
+            ? articleOrId : findArticleById(articleOrId);
         if (!article) { toast('बातमी सापडली नाही.'); return; }
 
-        var caption = buildCaption(article);
+        toast('पोस्टर तयार होत आहे...');
+
         var blob = null;
-        try { blob = await getImageBlob(article); } catch (e) { blob = null; }
+        try { blob = await generateCombinedPosterBlob(article); } catch (e) { blob = null; }
 
-        var file = blob ? new File([blob], 'news-' + article.id + '.jpg', { type: 'image/jpeg' }) : null;
+        if (!blob) { toast('पोस्टर तयार करता आले नाही.'); return; }
 
-        // 1) Mobile: one single message = news photo on top + caption (links) below
-        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        var file = new File([blob], 'nmg-news-' + article.id + '.jpg', { type: 'image/jpeg' });
+
+        /* Mobile: share ONE image file — no separate text so WhatsApp shows 1 bubble */
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
-                await navigator.share({ files: [file], text: caption });   // ONLY files + text (no title/url)
+                await navigator.share({ files: [file] });    // image only = ONE message
                 return buildShareJSON(article);
             } catch (e) {
-                if (e && e.name === 'AbortError') return;                  // user cancelled — do nothing
-                // Non-abort error → fall through to desktop fallback
+                if (e && e.name === 'AbortError') return;    // user cancelled
             }
         }
 
-        // 2) Desktop / unsupported fallback: copy caption + download image, open WhatsApp Web
-        await copyText(caption);
-        var copiedImage = false;
-        if (blob && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
-            try {
-                var png = await new Promise(function (res) { imageToBlobPng(blob, res); });
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-                copiedImage = true;
-            } catch (e) { copiedImage = false; }
-        }
-        if (blob && !copiedImage) downloadBlob(blob, 'news-' + article.id + '.jpg');
-
+        /* Desktop fallback: download poster + open WhatsApp Web */
+        downloadBlob(blob, 'nmg-news-' + article.id + '.jpg');
         window.open('https://web.whatsapp.com/', '_blank', 'noopener');
-        toast('फोटो व कॅप्शन कॉपी झाले – व्हॉट्सॲपमध्ये आधी फोटो पेस्ट करा, नंतर कॅप्शन पेस्ट करा');
+        toast('पोस्टर डाउनलोड झाले – व्हॉट्सॲपमध्ये शेअर करा');
         return buildShareJSON(article);
     };
 
-    // Alias: app.js calls NMGShare.shareNewsImage for 'image'/'poster' platform
-    window.shareNewsImage = window.shareOnWhatsApp;
+    window.shareNewsImage = window.shareOnWhatsApp;   // alias for app.js
 
-    // 📋 Copy caption only (no image sharing)
+    /* ── Caption copy (text with clickable links) ── */
+
     window.copyCaption = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
-            ? articleOrId
-            : findArticleById(articleOrId);
+            ? articleOrId : findArticleById(articleOrId);
         if (!article) return null;
-        var captionText = buildCaption(article);
-        copyText(captionText).then(function () {
-            toast('📋 व्हॉट्सॲप मेसेज आणि लिंक्स कॉपी झाल्या!');
-        });
-        return captionText;
+        var text = buildCaption(article);
+        copyText(text).then(function () { toast('📋 व्हॉट्सॲप मेसेज आणि लिंक्स कॉपी झाल्या!'); });
+        return text;
     };
 
-    // Alias for button: onclick="copyShareCaption(id)"
     window.copyShareCaption = window.copyCaption;
 
-    // Copy full JSON payload
     window.copyShareJSON = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
-            ? articleOrId
-            : findArticleById(articleOrId);
+            ? articleOrId : findArticleById(articleOrId);
         if (!article) return;
         var json = JSON.stringify(buildShareJSON(article), null, 2);
-        copyText(json).then(function () { toast('✅ JSON पेलोड कॉपी झाला!'); });
+        copyText(json).then(function () { toast('✅ JSON कॉपी झाला!'); });
         return json;
     };
 
-    // Global namespace — matches what app.js expects
     window.NMGShare = {
         getShareTemplate: getShareTemplate,
         saveShareTemplate: saveShareTemplate,
-        buildShareMessage: buildShareMessage,   // alias → buildCaption
+        buildShareMessage: buildShareMessage,
         buildCaption: buildCaption,
         buildShareJSON: buildShareJSON,
         getArticleUrl: getArticleUrl,
@@ -341,13 +380,3 @@
 
     document.addEventListener('DOMContentLoaded', loadShareTemplateConfigIntoForm);
 })();
-
-/* ------------------------------------------------------------
-   Button examples in article card / reader modal (app.js):
-
-   <button onclick="shareOnWhatsApp(${article.id})">📲 व्हॉट्सॲप शेअर</button>
-   <button onclick="copyShareCaption(${article.id})">📋 कॅप्शन कॉपी करा</button>
-
-   Include social links in caption (Facebook / Instagram / YouTube / Website):
-   localStorage.setItem('nmg_share_template', JSON.stringify({ includeSocial: true }))
-   ------------------------------------------------------------ */
