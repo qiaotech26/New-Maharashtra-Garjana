@@ -104,8 +104,8 @@ module.exports = async (req, res) => {
   }
 
   // ── EXTRACT ARTICLE ID ───────────────────────────────────────────────────
-  // Priority: ?id= param > ?article= param > /article/:id path segment
-  let id = query.id || query.article;
+  // Priority: ?p= param > ?id= param > ?article= param > /article/:id path segment
+  let id = query.p || query.id || query.article;
   if (!id && req.url) {
     const cleanPath = req.url.split('?')[0];
     const match = cleanPath.match(/\/(?:article|share)\/([^/?#]+)/i);
@@ -230,7 +230,7 @@ module.exports = async (req, res) => {
     ? `${proto}://${host}/article/${encodeURIComponent(id)}`
     : `${proto}://${host}/`;
   const targetUrl = id
-    ? `${proto}://${host}/?article=${encodeURIComponent(id)}`
+    ? `${proto}://${host}/?p=${encodeURIComponent(id)}`
     : `${proto}://${host}/`;
 
   // ── IMAGE MIME TYPE ──────────────────────────────────────────────────────

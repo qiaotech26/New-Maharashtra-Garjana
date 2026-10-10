@@ -22,6 +22,7 @@ let appState = {
   isAdminLoggedIn: false,
   commentsMap: {}
 };
+window.appState = appState;
 
 // Helper: Sanitize state to purge any legacy demo data from client browser cache
 function sanitizeNewsData(data) {
@@ -124,14 +125,22 @@ function renderTicker() {
     ? appState.news.ticker
     : ["ताज्या घडामोडींसाठी न्यू महाराष्ट्र गर्जनाशी जोडलेले रहा."];
 
-  const html = items.map(t => `
-    <div class="ticker-item" onclick="openTickerArticle('${t.replace(/'/g, "\\'")}')">
+  const html = items.map((t, idx) => `
+    <div class="ticker-item" onclick="openTickerArticleByIndex(${idx})">
       <span class="ticker-bullet">●</span>
       <span>${t}</span>
     </div>
   `).join('');
 
   track.innerHTML = html + html;
+}
+
+function openTickerArticleByIndex(idx) {
+  const items = (appState.news && appState.news.ticker && appState.news.ticker.length > 0)
+    ? appState.news.ticker
+    : ["ताज्या घडामोडींसाठी न्यू महाराष्ट्र गर्जनाशी जोडलेले रहा."];
+  const t = items[idx] || items[0] || "ताज्या घडामोडी";
+  openTickerArticle(t);
 }
 
 // 2. HERO SECTION
@@ -166,7 +175,7 @@ function renderHeroSection() {
 
   if (mainContainer) {
     mainContainer.innerHTML = `
-      <article class="hero-card" id="heroCard" onclick="openArticle(${heroArticle.id})" itemscope itemtype="https://schema.org/NewsArticle">
+      <article class="hero-card" id="heroCard" onclick="openArticle('${heroArticle.id}')" itemscope itemtype="https://schema.org/NewsArticle">
         <div class="hero-img-wrap">
           <img src="${heroArticle.img}" alt="${heroArticle.title} - न्यू महाराष्ट्र गर्जना" class="hero-img" id="heroImg" loading="eager" width="800" height="450" itemprop="image">
           <div class="hero-overlay-gradient"></div>
@@ -194,14 +203,14 @@ function renderHeroSection() {
     } else {
       sideContainer.style.display = '';
       sideContainer.innerHTML = sideArticles.map(a => `
-        <div class="side-news-card" onclick="openArticle(${a.id})">
+        <div class="side-news-card" onclick="openArticle('${a.id}')">
           <img src="${a.img}" alt="${a.title}" loading="lazy">
           <div class="side-news-body">
             <span class="side-cat">${a.cat}</span>
             <h3>${a.title}</h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
               <span class="side-time">${a.time}</span>
-              <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${a.id})" title="व्हॉट्सॲपवर बातमी शेअर करा">
+              <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${a.id}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
                 <span>शेअर</span>
               </button>
@@ -243,7 +252,7 @@ function renderLatestGrid() {
   }
 
   grid.innerHTML = articles.map((n, i) => `
-    <article class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})" itemscope itemtype="https://schema.org/NewsArticle">
+    <article class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${n.id}')" itemscope itemtype="https://schema.org/NewsArticle">
       <div class="news-card-img-wrap">
         <img class="news-card-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="400" height="240" itemprop="image">
         <span class="news-card-cat" itemprop="articleSection">${n.cat}</span>
@@ -254,7 +263,7 @@ function renderLatestGrid() {
         <div class="news-card-meta">
           <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${n.time || ''}</time></span>
           <span>👁️ ${Math.floor(100 + (Number(n.id) || 1) * 12)} वाचले</span>
-          <button class="card-wa-share-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${n.id})" title="व्हॉट्सॲपवर बातमी शेअर करा">
+          <button class="card-wa-share-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${n.id}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
             <span>शेअर</span>
           </button>
@@ -312,21 +321,33 @@ function renderListContainer(containerId, items, sectionId) {
   if (section) section.style.display = '';
 
   el.innerHTML = items.map((n, i) => `
-    <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle(${n.id})" itemscope itemtype="https://schema.org/NewsArticle">
+    <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${n.id}')" itemscope itemtype="https://schema.org/NewsArticle">
       <img class="list-news-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="120" height="80" itemprop="image">
       <div class="list-news-body">
         <span class="list-news-cat" itemprop="articleSection">${n.cat}</span>
         <h3 itemprop="headline">${n.title}</h3>
         <div class="list-news-meta-row">
           <span class="list-news-time"><time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
-          <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', ${n.id})" title="व्हॉट्सॲपवर शेअर करा">
+          <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${n.id}')" title="व्हॉट्सॲपवर शेअर करा">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-          <span>शेअर</span>
-        </button>
+            <span>शेअर</span>
+          </button>
+        </div>
       </div>
-    </div>
-  </article>
+    </article>
   `).join('');
+}
+
+function openVideoModalByIndex(index) {
+  const v = appState.news?.videos?.[index];
+  if (!v) return;
+  openVideoModal(v.title, v.dur, v.img);
+}
+
+function openPhotoModalByIndex(index) {
+  const p = appState.news?.photos?.[index];
+  if (!p) return;
+  openPhotoModal(p.caption, p.img);
 }
 
 // 5. VIDEO GRID
@@ -345,7 +366,7 @@ function renderVideoGrid() {
   if (section) section.style.display = '';
 
   grid.innerHTML = videos.map((v, i) => `
-    <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModal('${v.title}', '${v.dur}', '${v.img}')" itemscope itemtype="https://schema.org/VideoObject">
+    <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModalByIndex(${i})" itemscope itemtype="https://schema.org/VideoObject">
       <div class="video-thumb-wrap">
         <img class="video-thumb" src="${v.img}" alt="${v.title} - न्यू महाराष्ट्र गर्जना व्हिडिओ" loading="lazy" width="360" height="200" itemprop="thumbnailUrl">
         <div class="play-btn">▶</div>
@@ -377,7 +398,7 @@ function renderPhotoGrid() {
   if (section) section.style.display = '';
 
   grid.innerHTML = photos.map((p, i) => `
-    <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModal('${p.caption}', '${p.img}')" itemscope itemtype="https://schema.org/ImageObject">
+    <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModalByIndex(${i})" itemscope itemtype="https://schema.org/ImageObject">
       <img src="${p.img}" alt="${p.caption} - न्यू महाराष्ट्र गर्जना फोटो" loading="lazy" width="400" height="260" itemprop="contentUrl">
       <div class="photo-overlay">
         <p itemprop="caption">${p.caption}</p>
@@ -743,22 +764,22 @@ function openArticle(id) {
     <div class="share-section">
       <span class="share-title">ही बातमी शेअर करा:</span>
       <div class="share-buttons">
-        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', ${article.id})" title="व्हॉट्सॲपवर शेअर करा">
+        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', '${article.id}')" title="व्हॉट्सॲपवर शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
           <span>व्हॉट्सॲप</span>
         </button>
-        <button class="share-btn share-caption" onclick="shareArticle('caption', ${article.id})" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
+        <button class="share-btn share-caption" onclick="shareArticle('caption', '${article.id}')" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
           <span>📋 कॅप्शन कॉपी करा</span>
         </button>
-        <button class="share-btn share-facebook" onclick="shareArticle('facebook', ${article.id})" title="फेसबुकवर शेअर करा">
+        <button class="share-btn share-facebook" onclick="shareArticle('facebook', '${article.id}')" title="फेसबुकवर शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
           <span>फेसबुक</span>
         </button>
-        <button class="share-btn share-instagram" onclick="shareArticle('instagram', ${article.id})" title="इन्स्टाग्राम वर भेट द्या">
+        <button class="share-btn share-instagram" onclick="shareArticle('instagram', '${article.id}')" title="इन्स्टाग्राम वर भेट द्या">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
           <span>इन्स्टाग्राम</span>
         </button>
-        <button class="share-btn share-copy" onclick="shareArticle('copy', ${article.id})" title="बातमीची लिंक कॉपी करा">
+        <button class="share-btn share-copy" onclick="shareArticle('copy', '${article.id}')" title="बातमीची लिंक कॉपी करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
           <span>लिंक कॉपी</span>
         </button>
@@ -771,7 +792,7 @@ function openArticle(id) {
       <div class="comment-form">
         <input type="text" id="commentAuthorInput" placeholder="तुमचे नाव..." class="form-control">
         <textarea id="commentTextInput" rows="3" placeholder="तुमची प्रतिक्रिया लिहा..." class="form-control"></textarea>
-        <button type="button" onclick="submitComment(${article.id})">प्रतिक्रिया पाठवा</button>
+        <button type="button" onclick="submitComment('${article.id}')">प्रतिक्रिया पाठवा</button>
       </div>
       
       <div class="comments-list" id="commentsListContainer">
@@ -799,7 +820,8 @@ function closeArticleModal() {
     setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
   }
   try {
-    if (window.location.search.includes('article=') || window.location.hash.startsWith('#article-')) {
+    const search = window.location.search;
+    if (search.includes('p=') || search.includes('article=') || search.includes('id=') || window.location.hash.startsWith('#article-')) {
       const cleanUrl = window.location.origin + window.location.pathname;
       history.replaceState(null, '', cleanUrl);
     }
@@ -812,8 +834,8 @@ function closeArticleModal() {
 }
 
 function openArticleFromHero() {
-  const heroArticle = (appState.news.latest || []).find(a => a.isHero) || appState.news.latest[0];
-  if (heroArticle) openArticle(heroArticle.id);
+  const heroArticle = (appState.news?.latest || []).find(a => a.isHero) || appState.news?.latest?.[0];
+  if (heroArticle) openArticle(String(heroArticle.id));
 }
 
 function openTickerArticle(text) {
@@ -827,10 +849,13 @@ function toggleAudioRead() {
     return;
   }
 
+  const iconEl = document.getElementById('speechIcon');
+  const textEl = document.getElementById('speechBtnText');
+
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
-    document.getElementById('speechIcon').textContent = '🔊';
-    document.getElementById('speechBtnText').textContent = 'बातमी ऐका';
+    if (iconEl) iconEl.textContent = '🔊';
+    if (textEl) textEl.textContent = 'बातमी ऐका';
   } else {
     const title = document.getElementById('articleReaderTitle')?.textContent || '';
     const body = document.getElementById('articleBodyText')?.textContent || '';
@@ -841,13 +866,18 @@ function toggleAudioRead() {
     utterance.rate = 0.95;
 
     utterance.onend = () => {
-      document.getElementById('speechIcon').textContent = '🔊';
-      document.getElementById('speechBtnText').textContent = 'बातमी ऐका';
+      if (iconEl) iconEl.textContent = '🔊';
+      if (textEl) textEl.textContent = 'बातमी ऐका';
+    };
+
+    utterance.onerror = () => {
+      if (iconEl) iconEl.textContent = '🔊';
+      if (textEl) textEl.textContent = 'बातमी ऐका';
     };
 
     window.speechSynthesis.speak(utterance);
-    document.getElementById('speechIcon').textContent = '⏹️';
-    document.getElementById('speechBtnText').textContent = 'थांबवा';
+    if (iconEl) iconEl.textContent = '⏹️';
+    if (textEl) textEl.textContent = 'थांबवा';
     showToast('बातमीचे वाचन सुरू झाले आहे...', 'info');
   }
 }
@@ -904,7 +934,13 @@ function shareArticle(platform, id) {
 
   const origin = 'https://newmaharashtragarjana.com';
   const shareUrl = `${origin}/?p=${id}`;
-  const targetArticle = article || { id: id, title: title, url: shareUrl, img: document.querySelector('.article-main-image-box img')?.src };
+  const targetArticle = article || {
+    id: String(id),
+    title: title,
+    desc: cleanDesc,
+    url: shareUrl,
+    img: document.querySelector('.article-main-image-box img')?.src || 'https://newmaharashtragarjana.com/logo.jpg'
+  };
 
   if (platform === 'whatsapp') {
     // Combined: fetches news photo + pastes caption (links) as ONE WhatsApp message
@@ -958,9 +994,13 @@ const defaultWhatsAppShareTemplate = {
 };
 
 function formatWhatsAppShareMessage(title, shareUrl) {
+  if (window.NMGShare && typeof window.NMGShare.buildCaption === 'function') {
+    return window.NMGShare.buildCaption({ title: title, url: shareUrl });
+  }
+
   let tpl = Object.assign({}, defaultWhatsAppShareTemplate);
   try {
-    const saved = localStorage.getItem('nmg_share_template_config');
+    const saved = localStorage.getItem('nmg_share_template_config') || localStorage.getItem('nmg_share_template');
     if (saved) {
       Object.assign(tpl, JSON.parse(saved));
     }
@@ -971,16 +1011,16 @@ function formatWhatsAppShareMessage(title, shareUrl) {
 
   const hasGroup = tpl.groupLink && tpl.groupLink.startsWith('https://');
   if (hasGroup) {
-    msg += `\n\n${tpl.groupHeading}\n${tpl.groupEmoji}\n${tpl.groupLink}`;
+    msg += `\n\n${tpl.groupHeading}\n${tpl.groupEmoji || '🟢'}\n${tpl.groupLink}`;
   }
 
   const hasChannel = tpl.channelLink && tpl.channelLink.startsWith('https://');
   if (hasChannel) {
-    msg += `\n\n${tpl.channelHeading}\n${tpl.channelFollowText}\n${tpl.channelLink}`;
+    msg += `\n\n${tpl.channelHeading}\n${tpl.channelFollowText || 'Follow on WhatsApp:'}\n${tpl.channelLink}`;
   }
 
   if (tpl.contactPhone && tpl.contactPhone.trim()) {
-    msg += `\n\n${tpl.contactHeading}\n${tpl.contactPhone}`;
+    msg += `\n\n${tpl.contactHeading || 'बातम्या जाहिरातींकरता संपर्क:'}\n${tpl.contactPhone}`;
   }
 
   return msg;
@@ -1349,22 +1389,35 @@ function loadFirebaseTabValues() {
 }
 
 function loadShareTemplateValues() {
-  let tpl = Object.assign({}, defaultWhatsAppShareTemplate);
+  let tpl = (window.NMGShare && typeof window.NMGShare.getShareTemplate === 'function')
+    ? window.NMGShare.getShareTemplate()
+    : Object.assign({}, defaultWhatsAppShareTemplate);
+
   try {
-    const saved = localStorage.getItem('nmg_share_template_config');
+    const saved = localStorage.getItem('nmg_share_template_config') || localStorage.getItem('nmg_share_template');
     if (saved) Object.assign(tpl, JSON.parse(saved));
   } catch (e) { }
 
-  if (document.getElementById('shareTplGroupHeading')) document.getElementById('shareTplGroupHeading').value = tpl.groupHeading;
-  if (document.getElementById('shareTplGroupLink')) document.getElementById('shareTplGroupLink').value = tpl.groupLink;
-  if (document.getElementById('shareTplChannelHeading')) document.getElementById('shareTplChannelHeading').value = tpl.channelHeading;
-  if (document.getElementById('shareTplChannelFollowText')) document.getElementById('shareTplChannelFollowText').value = tpl.channelFollowText;
-  if (document.getElementById('shareTplChannelLink')) document.getElementById('shareTplChannelLink').value = tpl.channelLink;
-  if (document.getElementById('shareTplContactPhone')) document.getElementById('shareTplContactPhone').value = tpl.contactPhone;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.value = val;
+  };
+
+  setVal('shareTplGroupHeading', tpl.groupHeading);
+  setVal('shareTplGroupLink', tpl.groupLink);
+  setVal('shareTplChannelHeading', tpl.channelHeading);
+  setVal('shareTplChannelFollowText', tpl.channelFollowText);
+  setVal('shareTplChannelLink', tpl.channelLink);
+  setVal('shareTplFacebookUrl', tpl.facebookUrl);
+  setVal('shareTplInstagramUrl', tpl.instagramUrl);
+  setVal('shareTplYoutubeUrl', tpl.youtubeUrl);
+  setVal('shareTplWebsiteUrl', tpl.websiteUrl);
+  setVal('shareTplContactPhone', tpl.contactPhone);
 }
 
 function handleSaveShareTemplateConfig(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
+
   const cfg = {
     groupHeading: document.getElementById('shareTplGroupHeading')?.value.trim() || defaultWhatsAppShareTemplate.groupHeading,
     groupEmoji: '🟢',
@@ -1372,11 +1425,23 @@ function handleSaveShareTemplateConfig(event) {
     channelHeading: document.getElementById('shareTplChannelHeading')?.value.trim() || defaultWhatsAppShareTemplate.channelHeading,
     channelFollowText: document.getElementById('shareTplChannelFollowText')?.value.trim() || defaultWhatsAppShareTemplate.channelFollowText,
     channelLink: document.getElementById('shareTplChannelLink')?.value.trim() || defaultWhatsAppShareTemplate.channelLink,
+    facebookUrl: document.getElementById('shareTplFacebookUrl')?.value.trim() || 'https://www.facebook.com/newmaharashtragarjana',
+    instagramUrl: document.getElementById('shareTplInstagramUrl')?.value.trim() || 'https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==',
+    youtubeUrl: document.getElementById('shareTplYoutubeUrl')?.value.trim() || 'https://www.youtube.com/@newmaharashtragarjana',
+    websiteUrl: document.getElementById('shareTplWebsiteUrl')?.value.trim() || 'https://newmaharashtragarjana.com',
     contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
     contactPhone: document.getElementById('shareTplContactPhone')?.value.trim() || defaultWhatsAppShareTemplate.contactPhone
   };
 
-  localStorage.setItem('nmg_share_template_config', JSON.stringify(cfg));
+  if (window.NMGShare && typeof window.NMGShare.saveShareTemplate === 'function') {
+    window.NMGShare.saveShareTemplate(cfg);
+  } else {
+    try {
+      localStorage.setItem('nmg_share_template_config', JSON.stringify(cfg));
+      localStorage.setItem('nmg_share_template', JSON.stringify(cfg));
+    } catch (e) { }
+  }
+
   showToast('✅ व्हॉट्सॲप शेअर मेसेज फॉरमॅट यशस्वीरीत्या सेव्ह झाला!', 'success');
 }
 
@@ -1827,23 +1892,23 @@ function handleSaveArticle(event) {
 }
 
 function executePublishArticle() {
-  const editId = document.getElementById('editArticleId').value;
-  const title = document.getElementById('articleTitleInput').value.trim();
-  const cat = document.getElementById('articleCategorySelect').value;
-  const img = document.getElementById('articleImgInput').value.trim();
-  const desc = document.getElementById('articleDescInput').value.trim();
-  const contentRaw = document.getElementById('articleContentInput').value.trim();
-  const author = document.getElementById('articleAuthorInput').value.trim() || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी';
-  const isHero = document.getElementById('articleIsHeroInput').checked;
-  const isBreaking = document.getElementById('articleIsBreakingInput').checked;
+  const editId = document.getElementById('editArticleId')?.value;
+  const title = (document.getElementById('articleTitleInput')?.value || '').trim();
+  const cat = document.getElementById('articleCategorySelect')?.value || 'महाराष्ट्र';
+  const img = (document.getElementById('articleImgInput')?.value || '').trim();
+  const desc = (document.getElementById('articleDescInput')?.value || '').trim();
+  const contentRaw = (document.getElementById('articleContentInput')?.value || '').trim();
+  const author = (document.getElementById('articleAuthorInput')?.value || '').trim() || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी';
+  const isHero = document.getElementById('articleIsHeroInput')?.checked || false;
+  const isBreaking = document.getElementById('articleIsBreakingInput')?.checked || false;
 
   const formattedContent = contentRaw.split('\n\n').map(p => `<p>${p}</p>`).join('');
   const timeStr = new Date().toLocaleDateString('mr-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
   if (editId) {
     // EDIT EXISTING
-    const id = parseInt(editId);
-    let item = appState.news.latest.find(a => a.id === id);
+    const targetId = String(editId);
+    let item = (appState.news.latest || []).find(a => String(a.id) === targetId);
     if (item) {
       item.title = title;
       item.cat = cat;
@@ -1872,12 +1937,14 @@ function executePublishArticle() {
     };
 
     if (isHero) {
-      appState.news.latest.forEach(a => a.isHero = false);
+      (appState.news.latest || []).forEach(a => a.isHero = false);
     }
 
+    if (!Array.isArray(appState.news.latest)) appState.news.latest = [];
     appState.news.latest.unshift(newArticle);
 
     if (isBreaking) {
+      if (!Array.isArray(appState.news.ticker)) appState.news.ticker = [];
       appState.news.ticker.unshift(title);
     }
 
@@ -1888,8 +1955,8 @@ function executePublishArticle() {
 
   // Sync to Cloud Firestore and Serverless backup so all viewers & devices see it instantly
   const targetArticle = editId
-    ? appState.news.latest.find(a => a.id === parseInt(editId))
-    : appState.news.latest[0];
+    ? (appState.news.latest || []).find(a => String(a.id) === String(editId))
+    : (appState.news.latest || [])[0];
 
   if (targetArticle && typeof syncArticleToFirestore === 'function') {
     syncArticleToFirestore(targetArticle);
@@ -1901,15 +1968,24 @@ function executePublishArticle() {
 }
 
 function resetArticleForm() {
-  document.getElementById('editArticleId').value = '';
-  document.getElementById('articleTitleInput').value = '';
-  document.getElementById('articleImgInput').value = '';
-  document.getElementById('articleDescInput').value = '';
-  document.getElementById('articleContentInput').value = '';
-  document.getElementById('articleIsHeroInput').checked = false;
-  document.getElementById('articleIsBreakingInput').checked = false;
-  document.getElementById('imgPreviewWrap').style.display = 'none';
-  document.getElementById('formHeaderTitle').textContent = 'नवीन बातमी प्रकाशित करा';
+  const editId = document.getElementById('editArticleId');
+  if (editId) editId.value = '';
+  const title = document.getElementById('articleTitleInput');
+  if (title) title.value = '';
+  const img = document.getElementById('articleImgInput');
+  if (img) img.value = '';
+  const desc = document.getElementById('articleDescInput');
+  if (desc) desc.value = '';
+  const content = document.getElementById('articleContentInput');
+  if (content) content.value = '';
+  const isHero = document.getElementById('articleIsHeroInput');
+  if (isHero) isHero.checked = false;
+  const isBreak = document.getElementById('articleIsBreakingInput');
+  if (isBreak) isBreak.checked = false;
+  const previewWrap = document.getElementById('imgPreviewWrap');
+  if (previewWrap) previewWrap.style.display = 'none';
+  const formHeader = document.getElementById('formHeaderTitle');
+  if (formHeader) formHeader.textContent = 'नवीन बातमी प्रकाशित करा';
   isNewsVerifiedAndApproved = false;
   onNewsContentModified(false);
 }
@@ -1923,7 +1999,7 @@ function renderAdminTable() {
   if (countEl) countEl.textContent = articles.length;
 
   const search = document.getElementById('adminSearchInput')?.value.toLowerCase() || '';
-  const filtered = articles.filter(a => a.title.toLowerCase().includes(search));
+  const filtered = articles.filter(a => (a.title || '').toLowerCase().includes(search));
 
   tbody.innerHTML = filtered.map(a => `
     <tr>
@@ -1933,29 +2009,40 @@ function renderAdminTable() {
       <td><span class="news-card-cat" style="position:static;">${a.cat}</span></td>
       <td><small>${a.time}</small></td>
       <td>
-        <button class="btn btn-sm btn-secondary" onclick="editArticle(${a.id})">✏️ संपादन</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteArticle(${a.id})">🗑️ हटवा</button>
+        <button class="btn btn-sm btn-secondary" onclick="editArticle('${a.id}')">✏️ संपादन</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteArticle('${a.id}')">🗑️ हटवा</button>
       </td>
     </tr>
   `).join('');
 }
 
 function editArticle(id) {
-  const a = appState.news.latest.find(item => item.id === id);
+  const targetId = String(id);
+  const a = (appState.news?.latest || []).find(item => String(item.id) === targetId);
   if (!a) return;
 
-  document.getElementById('editArticleId').value = a.id;
-  document.getElementById('articleTitleInput').value = a.title;
-  document.getElementById('articleCategorySelect').value = a.cat;
-  document.getElementById('articleImgInput').value = a.img;
-  document.getElementById('articleDescInput').value = a.desc || '';
-  document.getElementById('articleContentInput').value = (a.content || '').replace(/<p>/g, '').replace(/<\/p>/g, '\n\n').trim();
-  document.getElementById('articleAuthorInput').value = a.author || '';
-  document.getElementById('articleIsHeroInput').checked = !!a.isHero;
-  document.getElementById('articleIsBreakingInput').checked = !!a.isBreaking;
+  const editId = document.getElementById('editArticleId');
+  if (editId) editId.value = a.id;
+  const title = document.getElementById('articleTitleInput');
+  if (title) title.value = a.title || '';
+  const cat = document.getElementById('articleCategorySelect');
+  if (cat) cat.value = a.cat || 'महाराष्ट्र';
+  const img = document.getElementById('articleImgInput');
+  if (img) img.value = a.img || '';
+  const desc = document.getElementById('articleDescInput');
+  if (desc) desc.value = a.desc || '';
+  const content = document.getElementById('articleContentInput');
+  if (content) content.value = (a.content || '').replace(/<p>/g, '').replace(/<\/p>/g, '\n\n').trim();
+  const author = document.getElementById('articleAuthorInput');
+  if (author) author.value = a.author || '';
+  const isHero = document.getElementById('articleIsHeroInput');
+  if (isHero) isHero.checked = !!a.isHero;
+  const isBreak = document.getElementById('articleIsBreakingInput');
+  if (isBreak) isBreak.checked = !!a.isBreaking;
 
   previewArticleImage();
-  document.getElementById('formHeaderTitle').textContent = `बातमी संपादन (ID: #${a.id})`;
+  const formHeader = document.getElementById('formHeaderTitle');
+  if (formHeader) formHeader.textContent = `बातमी संपादन (ID: #${a.id})`;
   isNewsVerifiedAndApproved = true;
   onNewsContentModified(true);
   switchAdminTab('add');
@@ -2443,9 +2530,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const articleQuery = urlParams.get('p') || urlParams.get('article') || urlParams.get('id');
     if (articleQuery) {
-      const artId = parseInt(articleQuery, 10);
-      if (artId) {
-        setTimeout(() => openArticle(artId), 250);
+      const cleanId = articleQuery.trim();
+      if (cleanId) {
+        setTimeout(() => openArticle(cleanId), 250);
         return;
       }
     }
@@ -2454,9 +2541,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const hash = window.location.hash;
     if (!hash) return;
     if (hash.startsWith('#article-')) {
-      const artId = parseInt(hash.replace('#article-', ''), 10);
-      if (artId) {
-        setTimeout(() => openArticle(artId), 250);
+      const cleanId = hash.replace('#article-', '').trim();
+      if (cleanId) {
+        setTimeout(() => openArticle(cleanId), 250);
       }
     } else if (['#आमच्याबद्दल', '#संपर्क', '#जाहिरात', '#गोपनीयता', '#अटी'].includes(hash)) {
       const topic = decodeURIComponent(hash.replace('#', ''));

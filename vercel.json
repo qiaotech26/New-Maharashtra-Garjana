@@ -5,8 +5,30 @@
     {
       "source": "/",
       "has": [
-        { "type": "query", "key": "article" },
-        { "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|TelegramBot|LinkedInBot|SkypeUriPreview).*" }
+        {
+          "type": "query",
+          "key": "article"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|TelegramBot|LinkedInBot|SkypeUriPreview).*"
+        }
+      ],
+      "destination": "/api/share"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p"
+        },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|TelegramBot|LinkedInBot|SkypeUriPreview).*"
+        }
       ],
       "destination": "/api/share"
     },
