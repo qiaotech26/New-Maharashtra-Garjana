@@ -1367,15 +1367,15 @@ function switchAdminTab(tab) {
 function loadFirebaseTabValues() {
   const badge = document.getElementById('firestoreStatusBadge');
   if (typeof isFirebaseConfigured === 'function' && isFirebaseConfigured()) {
-    if (badge) badge.innerHTML = '✅ Google Firebase Firestore थेट कनेक्टेड आहे';
+    if (badge) badge.innerHTML = '✅ Google Firebase Firestore थेट कनेक्टेड आहे (Project: newmaharashtragarjan)';
   } else {
-    if (badge) badge.innerHTML = '⚡ मल्टी-टियर क्लाउड सिंक सक्रिय आहे (Firebase की टाकल्यास लाइव्ह ऑन-स्नॅपशॉट चालू होईल)';
+    if (badge) badge.innerHTML = '⚡ मल्टी-टियर क्लाउड सिंक सक्रिय आहे';
   }
 
   try {
     const saved = localStorage.getItem('nmg_firebase_config');
-    if (saved) {
-      const cfg = JSON.parse(saved);
+    const cfg = saved ? JSON.parse(saved) : (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
+    if (cfg) {
       if (document.getElementById('fbApiKey')) document.getElementById('fbApiKey').value = cfg.apiKey || '';
       if (document.getElementById('fbProjectId')) document.getElementById('fbProjectId').value = cfg.projectId || '';
       if (document.getElementById('fbAuthDomain')) document.getElementById('fbAuthDomain').value = cfg.authDomain || '';

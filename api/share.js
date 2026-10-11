@@ -178,13 +178,13 @@ module.exports = async (req, res) => {
     }
 
     // 5. Cloud Firestore REST API — publicly readable if rules allow
-    //    Project: newmahagarjana  Collection: news_articles  Document: <articleId>
+    //    Project: newmaharashtragarjan  Collection: news_articles  Document: <articleId>
     if (!title || !img) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
         const fsRes = await fetch(
-          `https://firestore.googleapis.com/v1/projects/newmahagarjana/databases/(default)/documents/news_articles/${stringId}`,
+          `https://firestore.googleapis.com/v1/projects/newmaharashtragarjan/databases/(default)/documents/news_articles/${stringId}?key=AIzaSyCfpS92nkZt5K0062DwJCpLEuq_jFmEc_I`,
           { signal: controller.signal }
         );
         clearTimeout(timeout);

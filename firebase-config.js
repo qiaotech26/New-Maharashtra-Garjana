@@ -6,14 +6,15 @@
  */
 
 // 1. YOUR FIREBASE CONFIGURATION
-// Project: NEWMAHAGARJANA (Project Number: 311284464392)
+// Project: newmaharashtragarjan (Project Number: 916193008761)
 const firebaseConfig = {
-  apiKey: "AIzaSyDummyKey_ReplaceWithYourFirebaseApiKey",
-  authDomain: "newmahagarjana.firebaseapp.com",
-  projectId: "newmahagarjana",
-  storageBucket: "newmahagarjana.firebasestorage.app",
-  messagingSenderId: "311284464392",
-  appId: "1:311284464392:web:newmahagarjana"
+  apiKey: "AIzaSyCfpS92nkZt5K0062DwJCpLEuq_jFmEc_I",
+  authDomain: "newmaharashtragarjan.firebaseapp.com",
+  projectId: "newmaharashtragarjan",
+  storageBucket: "newmaharashtragarjan.firebasestorage.app",
+  messagingSenderId: "916193008761",
+  appId: "1:916193008761:web:4b90aefc79a6a48da288a8",
+  measurementId: "G-Y477NEWLJ8"
 };
 
 // Check if credentials were saved via Admin UI
