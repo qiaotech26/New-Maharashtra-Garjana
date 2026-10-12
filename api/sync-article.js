@@ -8,6 +8,27 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 global._NMG_ARTICLES_CACHE = global._NMG_ARTICLES_CACHE || {};
 
 module.exports = async (req, res) => {
+  // Polyfill status, json, and send methods if running in bare Node HTTP server
+  if (!res.status) {
+    res.status = function (code) {
+      res.statusCode = code;
+      return res;
+    };
+  }
+  if (!res.json) {
+    res.json = function (data) {
+      if (!res.getHeader('Content-Type')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      }
+      return res.end(JSON.stringify(data));
+    };
+  }
+  if (!res.send) {
+    res.send = function (data) {
+      return res.end(data);
+    };
+  }
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

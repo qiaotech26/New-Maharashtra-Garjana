@@ -13,3 +13,11 @@ Thumbs.db
 *.log
 .env.local
 .env
+
+# Runtime-generated data stores (written by the server at runtime — not source)
+articles_store.json
+news_data.json
+
+# Local dev/test scripts — not part of the production codebase
+test_local.js
+test_teardown.js

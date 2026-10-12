@@ -1,6 +1,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+// Graceful shutdown with 4-second SIGKILL guard (see teardown.js)
+const configureFutureProofTeardown = require('./teardown');
 
 const PORT = process.env.PORT || 3000;
 const BASE_DIR = __dirname;
@@ -84,6 +86,27 @@ function ensureAbsoluteUrl(imgUrl, host) {
 }
 
 const server = http.createServer((req, res) => {
+  // Attach status, json, send helpers to res for serverless handler delegation
+  if (!res.status) {
+    res.status = function (code) {
+      res.statusCode = code;
+      return res;
+    };
+  }
+  if (!res.json) {
+    res.json = function (data) {
+      if (!res.getHeader('Content-Type')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      }
+      return res.end(JSON.stringify(data));
+    };
+  }
+  if (!res.send) {
+    res.send = function (data) {
+      return res.end(data);
+    };
+  }
+
   const host = req.headers.host || `localhost:${PORT}`;
   const parsedUrl = new URL(req.url, `http://${host}`);
   let reqPath = decodeURI(parsedUrl.pathname);
@@ -128,8 +151,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Check if article ID is requested (via ?article=101, ?id=101, or /article/101)
-  let articleId = parsedUrl.searchParams.get('article') || parsedUrl.searchParams.get('id');
+  // Check if article ID is requested (via ?p=101, ?article=101, ?id=101, or /article/101)
+  let articleId = parsedUrl.searchParams.get('p') || parsedUrl.searchParams.get('article') || parsedUrl.searchParams.get('id');
   if (!articleId && reqPath.startsWith('/article/')) {
     articleId = reqPath.split('/')[2];
   }
@@ -258,5 +281,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+  try { process.stdout.write(`Server running at http://localhost:${PORT}/\n`); } catch (_) { }
 });
+
+// Install future-proof teardown: graceful close + 4-second hard SIGKILL guard.
+// Handles SIGTERM, SIGINT, keeps-alive socket draining, and defensive stdout logging.
+configureFutureProofTeardown(server);
