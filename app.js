@@ -959,11 +959,11 @@ function shareArticle(platform, id) {
   };
 
   if (platform === 'whatsapp') {
-    // Direct WhatsApp share: carries headline, article URL (for large rich image preview card), and all clickable links
-    if (window.NMGShare && typeof window.NMGShare.shareDirectWhatsApp === 'function') {
-      window.NMGShare.shareDirectWhatsApp(targetArticle);
+    // Poster share: sends article image + all clickable caption links (group, channel, social, contact)
+    if (window.NMGShare && typeof window.NMGShare.sharePosterImage === 'function') {
+      window.NMGShare.sharePosterImage(targetArticle);
     } else if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
-      window.NMGShare.shareOnWhatsApp(targetArticle, 'direct');
+      window.NMGShare.shareOnWhatsApp(targetArticle, 'poster');
     } else {
       const shareText = formatWhatsAppShareMessage(title, shareUrl);
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
