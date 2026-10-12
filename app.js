@@ -2027,10 +2027,8 @@ function executePublishArticle() {
         showToast('⚡ बातमी क्लाउड सर्व्हरवर सेव्ह झाली!', 'info');
       }
       if (res && res.error) {
-        console.warn('Firestore note:', res.error);
-        if (res.error.includes('PERMISSION_DENIED') || res.error.includes('disabled') || res.error.includes('has not been used')) {
-          showToast('⚠️ बातमी सेव्ह झाली, परंतु Firestore API चालू नाही. Firebase Console वर जाऊन Database Create करा.', 'warning');
-        }
+        // Log silently — Firestore is now live, transient errors should not alarm the editor
+        console.warn('Firestore sync note:', res.error);
       }
     }).catch(e => {
       console.warn('Sync error:', e);
