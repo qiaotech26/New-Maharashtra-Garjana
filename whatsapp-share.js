@@ -385,9 +385,10 @@
         return Promise.resolve();
     }
 
-    /* ---------- MAIN SHARE ACTION ---------- */
+    /* ---------- MAIN SHARE ACTIONS ---------- */
 
-    window.shareOnWhatsApp = function (articleOrId) {
+    // 1. Direct WhatsApp Share: Opens WhatsApp with full text, all links, and auto-rich preview image
+    window.shareDirectWhatsApp = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
             ? articleOrId
             : findArticleById(articleOrId);
@@ -399,16 +400,57 @@
 
         var captionText = buildCaption(article);
 
+        // Always copy caption to clipboard for immediate convenience
+        copyText(captionText);
+
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
+
+        // On mobile, if navigator.share is available without file restrictions, try native text share
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile && navigator.share && !navigator.canShare) {
+            navigator.share({
+                title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                text: captionText,
+                url: getArticleUrl(article)
+            }).catch(function () {
+                window.open(waUrl, '_blank');
+            });
+            return;
+        }
+
+        window.open(waUrl, '_blank', 'noopener');
+        toast('✅ व्हॉट्सॲप उघडत आहे... बातमीची लिंक व सर्व माहिती तयार आहे!', 'success');
+        return buildShareJSON(article);
+    };
+
+    // 2. Poster Image Share: Generates branded HD canvas image + auto-copies all links to clipboard
+    window.sharePosterImage = function (articleOrId) {
+        var article = (typeof articleOrId === 'object' && articleOrId !== null)
+            ? articleOrId
+            : findArticleById(articleOrId);
+
+        if (!article) {
+            toast('माफ करा, बातमी सापडली नाही.', 'warning');
+            return;
+        }
+
+        var captionText = buildCaption(article);
+
+        // Pre-copy caption text so user can easily paste if WhatsApp drops intent text
+        copyText(captionText);
+        toast('📋 बातमीचा मेसेज व सर्व लिंक्स कॉपी झाल्या! फोटो शेअर होत आहे...', 'info');
+
         generateShareCardCanvas(article, function (blob) {
             var file = blob ? new File([blob], 'news-' + article.id + '.jpg', { type: 'image/jpeg' }) : null;
 
-            // 1. Mobile Web Share API Level 2 (with files support check)
+            // 1. Mobile Web Share API Level 2 with files support
             if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                 navigator.share({
                     files: [file],
+                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
                     text: captionText
                 }).then(function () {
-                    // Success
+                    toast('✅ बातमीचा फोटो व लिंक यशस्वीरीत्या शेअर झाली!', 'success');
                 }).catch(function (err) {
                     if (err && (err.name === 'AbortError' || err.code === 20)) {
                         return; // User cancelled
@@ -425,6 +467,14 @@
         return buildShareJSON(article);
     };
 
+    // 3. Unified WhatsApp Share: defaults to Direct WhatsApp with rich preview and links
+    window.shareOnWhatsApp = function (articleOrId, mode) {
+        if (mode === 'poster' || mode === 'image') {
+            return window.sharePosterImage(articleOrId);
+        }
+        return window.shareDirectWhatsApp(articleOrId);
+    };
+
     function fallbackDesktopShare(blob, article, captionText) {
         // a) Automatically download the image
         if (blob) {
@@ -435,11 +485,11 @@
         var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
         window.open(waUrl, '_blank', 'noopener');
 
-        // c) Show Marathi toast requirement
-        toast('फोटो डाउनलोड झाला – व्हॉट्सॲपमध्ये अटॅच करा', 'info');
+        // c) Marathi guidance toast
+        toast('फोटो डाउनलोड झाला आणि सर्व लिंक्स व्हॉट्सॲपमध्ये जोडल्या आहेत!', 'info');
     }
 
-    window.shareNewsImage = window.shareOnWhatsApp;
+    window.shareNewsImage = window.sharePosterImage;
 
     window.copyCaption = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
@@ -478,7 +528,9 @@
         buildShareJSON: buildShareJSON,
         getArticleUrl: getArticleUrl,
         shareOnWhatsApp: window.shareOnWhatsApp,
-        shareNewsImage: window.shareOnWhatsApp,
+        shareDirectWhatsApp: window.shareDirectWhatsApp,
+        sharePosterImage: window.sharePosterImage,
+        shareNewsImage: window.sharePosterImage,
         copyCaption: window.copyCaption,
         copyShareCaption: window.copyCaption,
         copyShareJSON: window.copyShareJSON

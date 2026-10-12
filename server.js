@@ -110,36 +110,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API endpoint to sync new/edited articles from Admin panel
-  if (req.method === 'POST' && reqPath === '/api/sync-article') {
+  // Delegate /api/sync-article to api/sync-article.js
+  if (reqPath === '/api/sync-article') {
+    const syncHandler = require('./api/sync-article.js');
+    req.query = Object.fromEntries(parsedUrl.searchParams.entries());
+
+    if (req.method === 'GET' || req.method === 'OPTIONS') {
+      return syncHandler(req, res);
+    }
+
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
-      try {
-        const article = JSON.parse(body);
-        if (article && article.id) {
-          let newsData = {};
-          if (fs.existsSync(NEWS_FILE)) {
-            newsData = JSON.parse(fs.readFileSync(NEWS_FILE, 'utf8'));
-          }
-          if (!Array.isArray(newsData.latest)) newsData.latest = [];
-
-          const existingIdx = newsData.latest.findIndex(a => a.id === article.id);
-          if (existingIdx !== -1) {
-            newsData.latest[existingIdx] = article;
-          } else {
-            newsData.latest.unshift(article);
-          }
-          fs.writeFileSync(NEWS_FILE, JSON.stringify(newsData, null, 2), 'utf8');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, id: article.id }));
-          return;
-        }
-      } catch (err) {
-        console.error('Sync article error:', err);
-      }
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Invalid article data' }));
+      try { req.body = JSON.parse(body); } catch (e) { req.body = body; }
+      return syncHandler(req, res);
     });
     return;
   }

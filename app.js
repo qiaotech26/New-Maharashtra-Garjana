@@ -277,10 +277,23 @@ function renderLatestGrid() {
 function renderCategorySections() {
   if (!appState.news) return;
 
-  const maharashtra = appState.news.maharashtra || [];
-  const politics = appState.news.politics || [];
-  const sports = appState.news.sports || [];
-  const entertainment = appState.news.entertainment || [];
+  const allLatest = appState.news.latest || [];
+
+  const maharashtra = (appState.news.maharashtra && appState.news.maharashtra.length > 0)
+    ? appState.news.maharashtra
+    : allLatest.filter(a => a.cat === 'महाराष्ट्र');
+
+  const politics = (appState.news.politics && appState.news.politics.length > 0)
+    ? appState.news.politics
+    : allLatest.filter(a => a.cat === 'राजकारण');
+
+  const sports = (appState.news.sports && appState.news.sports.length > 0)
+    ? appState.news.sports
+    : allLatest.filter(a => a.cat === 'क्रीडा');
+
+  const entertainment = (appState.news.entertainment && appState.news.entertainment.length > 0)
+    ? appState.news.entertainment
+    : allLatest.filter(a => a.cat === 'मनोरंजन');
 
   renderListContainer('maharashtraNews', maharashtra, 'maharashtraSection');
   renderListContainer('politicsNews', politics, 'politicsSection');
@@ -764,9 +777,12 @@ function openArticle(id) {
     <div class="share-section">
       <span class="share-title">ही बातमी शेअर करा:</span>
       <div class="share-buttons">
-        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', '${article.id}')" title="व्हॉट्सॲपवर शेअर करा">
+        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', '${article.id}')" title="व्हॉट्सॲपवर बातमी व सर्व लिंक्स शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
           <span>व्हॉट्सॲप</span>
+        </button>
+        <button class="share-btn share-poster" onclick="shareArticle('poster', '${article.id}')" title="ब्रँडेड फोटो पोस्टर तयार करून शेअर करा" style="background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color: white;">
+          <span>🖼️ फोटो पोस्टर</span>
         </button>
         <button class="share-btn share-caption" onclick="shareArticle('caption', '${article.id}')" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
           <span>📋 कॅप्शन कॉपी करा</span>
@@ -943,17 +959,21 @@ function shareArticle(platform, id) {
   };
 
   if (platform === 'whatsapp') {
-    // Combined: fetches news photo + pastes caption (links) as ONE WhatsApp message
-    if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
-      window.NMGShare.shareOnWhatsApp(targetArticle);
+    // Direct WhatsApp share: carries headline, article URL (for large rich image preview card), and all clickable links
+    if (window.NMGShare && typeof window.NMGShare.shareDirectWhatsApp === 'function') {
+      window.NMGShare.shareDirectWhatsApp(targetArticle);
+    } else if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
+      window.NMGShare.shareOnWhatsApp(targetArticle, 'direct');
     } else {
       const shareText = formatWhatsAppShareMessage(title, shareUrl);
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
     }
   } else if (platform === 'image' || platform === 'poster') {
-    // Same combined photo + caption share
-    if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
-      window.NMGShare.shareOnWhatsApp(targetArticle);
+    // Poster image share: generates branded HD image card + auto-copies all links to clipboard
+    if (window.NMGShare && typeof window.NMGShare.sharePosterImage === 'function') {
+      window.NMGShare.sharePosterImage(targetArticle);
+    } else if (window.NMGShare && typeof window.NMGShare.shareOnWhatsApp === 'function') {
+      window.NMGShare.shareOnWhatsApp(targetArticle, 'poster');
     }
   } else if (platform === 'caption') {
     // Copy caption text (links) only — no image
@@ -1366,10 +1386,22 @@ function switchAdminTab(tab) {
 
 function loadFirebaseTabValues() {
   const badge = document.getElementById('firestoreStatusBadge');
-  if (typeof isFirebaseConfigured === 'function' && isFirebaseConfigured()) {
-    if (badge) badge.innerHTML = '✅ Google Firebase Firestore थेट कनेक्टेड आहे (Project: newmaharashtragarjan)';
-  } else {
-    if (badge) badge.innerHTML = '⚡ मल्टी-टियर क्लाउड सिंक सक्रिय आहे';
+  if (badge) badge.innerHTML = '🔄 Firestore कनेक्शन तपासत आहे...';
+
+  if (typeof testFirestoreConnection === 'function') {
+    testFirestoreConnection().then(res => {
+      if (!badge) return;
+      if (res.ok) {
+        badge.style.color = '#10B981';
+        badge.innerHTML = '✅ Google Firebase Firestore थेट कनेक्टेड आहे!';
+      } else if (res.status === 'api_disabled') {
+        badge.style.color = '#F59E0B';
+        badge.innerHTML = '⚠️ Cloud Firestore API अद्याप ॲक्टिव्हेट नाही (Firebase Console मध्ये Database Create करा)';
+      } else {
+        badge.style.color = '#64748B';
+        badge.innerHTML = '⚡ मल्टी-टियर सर्व्हरलेस सिंक सक्रिय आहे';
+      }
+    });
   }
 
   try {
@@ -1466,6 +1498,17 @@ function handleSaveFirebaseConfig(event) {
 
 function testCloudSyncNow() {
   showToast('🔄 क्लाउड सिंक तपासत आहे...', 'info');
+
+  if (typeof testFirestoreConnection === 'function') {
+    testFirestoreConnection().then(res => {
+      if (res.ok) {
+        showToast('✓ Cloud Firestore थेट कनेक्टेड आहे आणि कार्यरत आहे!', 'success');
+      } else {
+        showToast(res.message, res.status === 'api_disabled' ? 'warning' : 'info');
+      }
+    });
+  }
+
   if (typeof fetchServerlessArticlesFallback === 'function') {
     fetchServerlessArticlesFallback((articles) => {
       showToast(`✓ क्लाउडवरून ${articles.length} ताज्या बातम्या यशस्वीरीत्या सिंक झाल्या!`, 'success');
@@ -1473,8 +1516,6 @@ function testCloudSyncNow() {
         initCloudSync();
       }
     });
-  } else {
-    showToast('✓ क्लाउड सिंक कार्यरत आहे!', 'success');
   }
 }
 
@@ -1951,15 +1992,49 @@ function executePublishArticle() {
     showToast('व्याकरणशुद्ध व योग्य स्वरूपातील बातमी यशस्वीरीत्या प्रकाशित झाली!', 'success');
   }
 
-  saveStateToStorage();
-
-  // Sync to Cloud Firestore and Serverless backup so all viewers & devices see it instantly
+  // Also maintain category list so section blocks feed live immediately
+  const catMap = {
+    'महाराष्ट्र': 'maharashtra',
+    'राजकारण': 'politics',
+    'क्रीडा': 'sports',
+    'मनोरंजन': 'entertainment',
+    'व्हिडिओ': 'videos',
+    'फोटो': 'photos'
+  };
+  const targetCatKey = catMap[cat];
   const targetArticle = editId
     ? (appState.news.latest || []).find(a => String(a.id) === String(editId))
     : (appState.news.latest || [])[0];
 
+  if (targetCatKey && targetArticle) {
+    if (!Array.isArray(appState.news[targetCatKey])) appState.news[targetCatKey] = [];
+    const catIdx = appState.news[targetCatKey].findIndex(a => String(a.id) === String(targetArticle.id));
+    if (catIdx !== -1) {
+      appState.news[targetCatKey][catIdx] = targetArticle;
+    } else {
+      appState.news[targetCatKey].unshift(targetArticle);
+    }
+  }
+
+  saveStateToStorage();
+
+  // Sync to Cloud Firestore and Serverless backup so all viewers & devices see it instantly
   if (targetArticle && typeof syncArticleToFirestore === 'function') {
-    syncArticleToFirestore(targetArticle);
+    syncArticleToFirestore(targetArticle).then(res => {
+      if (res && res.firestore) {
+        showToast('☁️ बातमी Cloud Firestore वर थेट सिंक झाली!', 'success');
+      } else if (res && res.serverless) {
+        showToast('⚡ बातमी क्लाउड सर्व्हरवर सेव्ह झाली!', 'info');
+      }
+      if (res && res.error) {
+        console.warn('Firestore note:', res.error);
+        if (res.error.includes('PERMISSION_DENIED') || res.error.includes('disabled') || res.error.includes('has not been used')) {
+          showToast('⚠️ बातमी सेव्ह झाली, परंतु Firestore API चालू नाही. Firebase Console वर जाऊन Database Create करा.', 'warning');
+        }
+      }
+    }).catch(e => {
+      console.warn('Sync error:', e);
+    });
   }
 
   resetArticleForm();
@@ -2570,6 +2645,15 @@ document.addEventListener('DOMContentLoaded', () => {
           appState.news.latest = [];
         }
 
+        const catMap = {
+          'महाराष्ट्र': 'maharashtra',
+          'राजकारण': 'politics',
+          'क्रीडा': 'sports',
+          'मनोरंजन': 'entertainment',
+          'व्हिडिओ': 'videos',
+          'फोटो': 'photos'
+        };
+
         cloudArticles.forEach(cloudArt => {
           const stringId = String(cloudArt.id);
           const existingIdx = appState.news.latest.findIndex(localArt => String(localArt.id) === stringId);
@@ -2580,13 +2664,25 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.news.latest.unshift(cloudArt);
             hasChanges = true;
           }
+
+          // Populate category array
+          const targetCatKey = catMap[cloudArt.cat];
+          if (targetCatKey) {
+            if (!Array.isArray(appState.news[targetCatKey])) appState.news[targetCatKey] = [];
+            const cIdx = appState.news[targetCatKey].findIndex(a => String(a.id) === stringId);
+            if (cIdx !== -1) {
+              appState.news[targetCatKey][cIdx] = { ...appState.news[targetCatKey][cIdx], ...cloudArt };
+            } else {
+              appState.news[targetCatKey].unshift(cloudArt);
+            }
+          }
         });
 
         if (hasChanges) {
           saveStateToStorage();
           renderAll();
           renderAdminTable();
-          console.log('🔄 All devices updated: Cloud Firestore articles synced live.');
+          console.log('🔄 All devices updated: Cloud articles synced live.');
         }
       });
     }

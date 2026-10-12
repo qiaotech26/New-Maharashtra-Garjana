@@ -107,14 +107,51 @@ function initFirebase() {
 // Auto-run initFirebase
 initFirebase();
 
-// 3. REALTIME NEWS SYNC - WRITE ARTICLE TO FIRESTORE
+// 3. FIRESTORE HEALTH CHECK & DIAGNOSTICS
+async function testFirestoreConnection() {
+  if (!isFirestoreInitialized || !firestoreDb) {
+    initFirebase();
+  }
+  if (!firestoreDb) {
+    return {
+      ok: false,
+      status: 'unconfigured',
+      message: 'Firebase SDK अद्याप सुरू झालेले नाही. कृपया API Key आणि Project ID तपासा.'
+    };
+  }
+
+  try {
+    const snap = await firestoreDb.collection('news_articles').limit(5).get();
+    return {
+      ok: true,
+      status: 'connected',
+      count: snap.size,
+      message: `Cloud Firestore थेट कनेक्टेड आहे (${snap.size} बातम्या उपलब्ध).`
+    };
+  } catch (err) {
+    console.warn('Firestore connection test note:', err);
+    let errMsg = err.message || '';
+    let isApiDisabled = errMsg.includes('has not been used') || errMsg.includes('disabled') || err.code === 'permission-denied' || errMsg.includes('PERMISSION_DENIED');
+    return {
+      ok: false,
+      status: isApiDisabled ? 'api_disabled' : 'error',
+      code: err.code || 'UNKNOWN',
+      rawMessage: errMsg,
+      message: isApiDisabled
+        ? '⚠️ Cloud Firestore API चालू नाही किंवा Database तयार केलेले नाही. Firebase Console (console.firebase.google.com) वर जाऊन Firestore Database "Create" करा व Rules मध्ये "allow read, write: if true;" सेट करा.'
+        : `⚠️ Firestore त्रुटी: ${errMsg}`
+    };
+  }
+}
+
+// 4. REALTIME NEWS SYNC - WRITE ARTICLE TO FIRESTORE & SERVERLESS BACKUP
 async function syncArticleToFirestore(article) {
-  if (!article || !article.id) return false;
+  if (!article || !article.id) return { success: false, error: 'No article data' };
 
   const docId = String(article.id);
   const docData = {
     id: docId,
-    numericId: Number(article.id) || Date.now(),
+    numericId: Number(article.numericId || article.id) || Date.now(),
     title: article.title || '',
     cat: article.cat || 'महाराष्ट्र',
     desc: article.desc || article.caption || '',
@@ -129,29 +166,44 @@ async function syncArticleToFirestore(article) {
       : new Date().toISOString()
   };
 
-  // If Firestore is ready, save directly to Cloud Firestore collection
+  let firestoreSuccess = false;
+  let firestoreErrorMsg = null;
+
+  // Step 1: Write directly to Cloud Firestore collection if available
   if (isFirestoreInitialized && firestoreDb) {
     try {
       await firestoreDb.collection('news_articles').doc(docId).set(docData, { merge: true });
+      firestoreSuccess = true;
       console.log(`☁️ Article #${docId} synced to Cloud Firestore.`);
     } catch (err) {
-      console.error('Firestore write error:', err);
+      firestoreErrorMsg = err.message || 'Firestore write rejected';
+      console.warn('Firestore write warning:', err);
     }
   }
 
-  // Also sync to serverless fallback (/api/sync-article) for WhatsApp preview bots
+  // Step 2: ALWAYS sync to Serverless Store (/api/sync-article) for persistence & WhatsApp preview bots
+  let serverlessSuccess = false;
   try {
-    fetch('/api/sync-article', {
+    const apiRes = await fetch('/api/sync-article', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(docData)
-    }).catch(() => { });
+    });
+    if (apiRes.ok) {
+      serverlessSuccess = true;
+      console.log(`⚡ Article #${docId} synced to Serverless API.`);
+    }
   } catch (e) { }
 
-  return true;
+  return {
+    success: firestoreSuccess || serverlessSuccess,
+    firestore: firestoreSuccess,
+    serverless: serverlessSuccess,
+    error: firestoreErrorMsg
+  };
 }
 
-// 4. REALTIME NEWS SYNC - DELETE ARTICLE FROM FIRESTORE
+// 5. REALTIME NEWS SYNC - DELETE ARTICLE FROM FIRESTORE
 async function deleteArticleFromFirestore(articleId) {
   if (!articleId) return;
   const docId = String(articleId);
@@ -161,7 +213,7 @@ async function deleteArticleFromFirestore(articleId) {
       await firestoreDb.collection('news_articles').doc(docId).delete();
       console.log(`🗑️ Article #${docId} deleted from Cloud Firestore.`);
     } catch (err) {
-      console.error('Firestore delete error:', err);
+      console.warn('Firestore delete error:', err);
     }
   }
 
@@ -174,7 +226,9 @@ async function deleteArticleFromFirestore(articleId) {
   } catch (e) { }
 }
 
-// 5. REALTIME LISTENER - PUSH UPDATES TO ALL VIEWERS INSTANTLY
+// 6. REALTIME LISTENER - PUSH UPDATES TO ALL VIEWERS INSTANTLY
+let fallbackPollInterval = null;
+
 function listenToFirestoreNews(onUpdate) {
   if (!isFirestoreInitialized) {
     initFirebase();
@@ -182,7 +236,7 @@ function listenToFirestoreNews(onUpdate) {
 
   if (isFirestoreInitialized && firestoreDb) {
     try {
-      return firestoreDb.collection('news_articles')
+      const unsubscribe = firestoreDb.collection('news_articles')
         .orderBy('numericId', 'desc')
         .limit(100)
         .onSnapshot((snapshot) => {
@@ -200,19 +254,32 @@ function listenToFirestoreNews(onUpdate) {
         }, (error) => {
           console.warn('Firestore snapshot listener warning:', error);
           fetchServerlessArticlesFallback(onUpdate);
+          startFallbackPolling(onUpdate);
         });
+
+      return unsubscribe;
     } catch (e) {
       console.warn('Error attaching Firestore listener:', e);
       fetchServerlessArticlesFallback(onUpdate);
+      startFallbackPolling(onUpdate);
     }
   } else {
-    // If Firebase keys are not yet configured, fetch from serverless cloud store
+    // If Firebase keys are not yet configured or pending, fetch from serverless cloud store
     fetchServerlessArticlesFallback(onUpdate);
+    startFallbackPolling(onUpdate);
   }
   return null;
 }
 
-// 6. SERVERLESS CLOUD FALLBACK LOADER
+function startFallbackPolling(onUpdate) {
+  if (fallbackPollInterval) return;
+  // Poll fallback API every 25 seconds so all devices stay in sync even without Firestore
+  fallbackPollInterval = setInterval(() => {
+    fetchServerlessArticlesFallback(onUpdate);
+  }, 25000);
+}
+
+// 7. SERVERLESS CLOUD FALLBACK LOADER
 async function fetchServerlessArticlesFallback(callback) {
   if (typeof callback !== 'function') return;
 
@@ -221,12 +288,15 @@ async function fetchServerlessArticlesFallback(callback) {
     const res = await fetch('/api/sync-article');
     if (res.ok) {
       const store = await res.json();
-      const articles = Array.isArray(store)
+      let articles = Array.isArray(store)
         ? store
-        : Object.values(store || {}).map(a => ({
-          ...a,
-          id: Number(a.id) || a.id
-        }));
+        : Object.values(store || {});
+      articles = articles.map(a => ({
+        ...a,
+        id: Number(a.numericId || a.id) || a.id
+      }));
+      // Sort newest first
+      articles.sort((a, b) => (Number(b.numericId || b.id) || 0) - (Number(a.numericId || a.id) || 0));
       if (articles.length > 0) {
         callback(articles);
         return;
@@ -251,12 +321,14 @@ async function fetchServerlessArticlesFallback(callback) {
     const rawRes = await fetch('https://raw.githubusercontent.com/qiaotech26/New-Maharashtra-Garjana/main/articles_store.json', { cache: 'no-cache' });
     if (rawRes.ok) {
       const store = await rawRes.json();
-      const articles = Array.isArray(store)
+      let articles = Array.isArray(store)
         ? store
-        : Object.values(store || {}).map(a => ({
-          ...a,
-          id: Number(a.id) || a.id
-        }));
+        : Object.values(store || {});
+      articles = articles.map(a => ({
+        ...a,
+        id: Number(a.numericId || a.id) || a.id
+      }));
+      articles.sort((a, b) => (Number(b.numericId || b.id) || 0) - (Number(a.numericId || a.id) || 0));
       if (articles.length > 0) {
         callback(articles);
       }
@@ -268,7 +340,9 @@ async function fetchServerlessArticlesFallback(callback) {
 window.initFirebase = initFirebase;
 window.saveFirebaseCredentials = saveFirebaseCredentials;
 window.isFirebaseConfigured = isFirebaseConfigured;
+window.testFirestoreConnection = testFirestoreConnection;
 window.syncArticleToFirestore = syncArticleToFirestore;
 window.deleteArticleFromFirestore = deleteArticleFromFirestore;
 window.listenToFirestoreNews = listenToFirestoreNews;
 window.fetchServerlessArticlesFallback = fetchServerlessArticlesFallback;
+

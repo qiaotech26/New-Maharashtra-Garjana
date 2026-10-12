@@ -58,6 +58,21 @@ module.exports = async (req, res) => {
       }
     } catch (e) { }
 
+    try {
+      const newsFile = path.join(process.cwd(), 'news_data.json');
+      if (fs.existsSync(newsFile)) {
+        let newsData = {};
+        try { newsData = JSON.parse(fs.readFileSync(newsFile, 'utf8')); } catch (e) { }
+        const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
+        categories.forEach(cat => {
+          if (Array.isArray(newsData[cat])) {
+            newsData[cat] = newsData[cat].filter(a => String(a.id) !== stringId);
+          }
+        });
+        fs.writeFileSync(newsFile, JSON.stringify(newsData, null, 2), 'utf8');
+      }
+    } catch (e) { }
+
     return res.status(200).json({ success: true, deletedId: stringId });
   }
 
@@ -68,18 +83,23 @@ module.exports = async (req, res) => {
   try {
     const articleRecord = {
       id: stringId,
+      numericId: Number(body.numericId || body.id) || Date.now(),
       title: body.title || 'न्यू महाराष्ट्र गर्जना बातमी',
       img: body.img || '',
       desc: body.desc || body.caption || '',
+      content: body.content || '',
       cat: body.cat || 'महाराष्ट्र',
-      time: body.time || '',
+      author: body.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
+      time: body.time || new Date().toLocaleDateString('mr-IN'),
+      isHero: Boolean(body.isHero),
+      isBreaking: Boolean(body.isBreaking),
       updatedAt: new Date().toISOString()
     };
 
     // 1. Immediately store in memory cache
     global._NMG_ARTICLES_CACHE[stringId] = articleRecord;
 
-    // 2. Save to local articles_store.json if file exists
+    // 2. Save to local articles_store.json
     try {
       const localFile = path.join(process.cwd(), 'articles_store.json');
       let store = {};
@@ -90,7 +110,64 @@ module.exports = async (req, res) => {
       fs.writeFileSync(localFile, JSON.stringify(store, null, 2), 'utf8');
     } catch (e) { }
 
-    // 3. Persist to GitHub articles_store.json if token is provided
+    // 3. Save to local news_data.json so server.js and fallback readers have category feeds
+    try {
+      const newsFile = path.join(process.cwd(), 'news_data.json');
+      let newsData = {
+        ticker: [],
+        latest: [],
+        maharashtra: [],
+        politics: [],
+        sports: [],
+        entertainment: [],
+        videos: [],
+        photos: []
+      };
+      if (fs.existsSync(newsFile)) {
+        try { newsData = JSON.parse(fs.readFileSync(newsFile, 'utf8')); } catch (e) { }
+      }
+      if (!Array.isArray(newsData.latest)) newsData.latest = [];
+
+      // Update in latest
+      const exIdx = newsData.latest.findIndex(a => String(a.id) === stringId);
+      if (exIdx !== -1) {
+        newsData.latest[exIdx] = articleRecord;
+      } else {
+        newsData.latest.unshift(articleRecord);
+      }
+
+      // Update in category array
+      const catMap = {
+        'महाराष्ट्र': 'maharashtra',
+        'राजकारण': 'politics',
+        'क्रीडा': 'sports',
+        'मनोरंजन': 'entertainment',
+        'व्हिडिओ': 'videos',
+        'फोटो': 'photos'
+      };
+      const catKey = catMap[articleRecord.cat];
+      if (catKey) {
+        if (!Array.isArray(newsData[catKey])) newsData[catKey] = [];
+        const cIdx = newsData[catKey].findIndex(a => String(a.id) === stringId);
+        if (cIdx !== -1) {
+          newsData[catKey][cIdx] = articleRecord;
+        } else {
+          newsData[catKey].unshift(articleRecord);
+        }
+      }
+
+      // If breaking news, add to ticker
+      if (articleRecord.isBreaking) {
+        if (!Array.isArray(newsData.ticker)) newsData.ticker = [];
+        if (!newsData.ticker.includes(articleRecord.title)) {
+          newsData.ticker.unshift(articleRecord.title);
+        }
+      }
+
+      fs.writeFileSync(newsFile, JSON.stringify(newsData, null, 2), 'utf8');
+    } catch (e) { }
+
+    // 4. Persist to GitHub articles_store.json if token is provided
     if (GITHUB_TOKEN) {
       try {
         fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/articles_store.json`, {
@@ -128,7 +205,7 @@ module.exports = async (req, res) => {
       } catch (e) { }
     }
 
-    return res.status(200).json({ success: true, id: stringId });
+    return res.status(200).json({ success: true, id: stringId, article: articleRecord });
   } catch (err) {
     console.error('sync-article error:', err);
     return res.status(500).json({ error: err.message });
