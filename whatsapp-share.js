@@ -1,7 +1,8 @@
 /* ============================================================
    whatsapp-share.js  —  New Maharashtra Garjana
-   Builds WhatsApp share image card + clickable caption text message
-   with Web Share API Level 2 and Desktop fallback.
+   Shares article image + all links in ONE WhatsApp message.
+   Mobile : Web Share API Level 2 (image file + caption text)
+   Desktop: downloads image, opens WhatsApp with full caption.
 
    Load AFTER firebase-config.js and BEFORE app.js:
      <script src="whatsapp-share.js"></script>
@@ -207,112 +208,7 @@
         };
     }
 
-    /* ---------- Canvas Share Card Poster Generator ---------- */
-
-    function wrapText(ctx, text, maxWidth) {
-        var words = text.split(/\s+/);
-        var lines = [], cur = '';
-        words.forEach(function (w) {
-            var test = cur ? cur + ' ' + w : w;
-            if (ctx.measureText(test).width > maxWidth && cur) {
-                lines.push(cur);
-                cur = w;
-            } else {
-                cur = test;
-            }
-        });
-        if (cur) lines.push(cur);
-        return lines;
-    }
-
-    /**
-     * Generates ONLY the branded NMG info/text card (no article image embedded).
-     * callback(blob, dataUrl)
-     */
-    function generateShareCardCanvas(article, callback) {
-        var t = getShareTemplate();
-
-        // Card is info-panel only — full height
-        var W = 1080, H = 540;
-
-        var canvas = document.createElement('canvas');
-        canvas.width = W;
-        canvas.height = H;
-        var ctx = canvas.getContext('2d');
-
-        // Dark background
-        ctx.fillStyle = '#0E1A2B';
-        ctx.fillRect(0, 0, W, H);
-
-        // Red top accent bar
-        ctx.fillStyle = '#B80F0A';
-        ctx.fillRect(0, 0, W, 7);
-
-        // Gold divider line
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(0, 7, W, 3);
-
-        var pad = 38;
-        var maxW = W - pad * 2;
-        var y = 60;
-
-        // Article title
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 36px "Noto Sans Devanagari", Arial, sans-serif';
-        var titleLines = wrapText(ctx, article.title || '', maxW);
-        titleLines.slice(0, 3).forEach(function (line) {
-            ctx.fillText(line, pad, y);
-            y += 48;
-        });
-        y += 8;
-
-        // Article URL
-        var articleUrl = getArticleUrl(article);
-        ctx.fillStyle = '#60A5FA';
-        ctx.font = '22px "Courier New", monospace';
-        ctx.fillText('\uD83D\uDD17 ' + articleUrl, pad, y);
-        y += 44;
-
-        // Separator
-        ctx.strokeStyle = '#1E3A5F';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(pad, y);
-        ctx.lineTo(W - pad, y);
-        ctx.stroke();
-        y += 28;
-
-        // WhatsApp Channel Call to Action
-        ctx.fillStyle = '#4ADE80';
-        ctx.font = 'bold 24px "Noto Sans Devanagari", Arial, sans-serif';
-        var t2 = getShareTemplate();
-        var grpLines = wrapText(ctx, '\uD83D\uDCF2 ' + t2.groupHeading, maxW);
-        grpLines.slice(0, 2).forEach(function (line) {
-            ctx.fillText(line, pad, y);
-            y += 32;
-        });
-        ctx.fillStyle = '#86EFAC';
-        ctx.font = '21px "Courier New", monospace';
-        ctx.fillText(t2.channelLink, pad, y);
-        y += 40;
-
-        // Contact Info
-        ctx.fillStyle = '#FCD34D';
-        ctx.font = 'bold 26px "Noto Sans Devanagari", Arial, sans-serif';
-        ctx.fillText('\uD83D\uDCDE ' + (t2.contactLabel || '') + '  ' + t2.contactPhone, pad, y);
-
-        // Branding footer
-        ctx.fillStyle = '#64748B';
-        ctx.font = '18px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('\u0928\u094D\u092F\u0942 \u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930 \u0917\u0930\u094D\u091C\u0928\u093E  |  newmaharashtragarjana.com', W / 2, H - 18);
-        ctx.textAlign = 'left';
-
-        canvas.toBlob(function (b) {
-            callback(b, canvas.toDataURL('image/jpeg', 0.93));
-        }, 'image/jpeg', 0.93);
-    }
+    /* ---------- Image fetch helper ---------- */
 
     /**
      * Fetches the article image URL and returns it as a Blob via callback.
@@ -389,138 +285,102 @@
         return Promise.resolve();
     }
 
-    /* ---------- MAIN SHARE ACTIONS ---------- */
+    /* ---------- MAIN SHARE ACTION ---------- */
 
-    // 1. Direct WhatsApp Share: Opens WhatsApp with full text, all links, and auto-rich preview image
+    /**
+     * shareOnWhatsApp / shareDirectWhatsApp
+     * ──────────────────────────────────────
+     * ONE message on WhatsApp containing:
+     *   • Article image  (as attached file on mobile / downloaded on desktop)
+     *   • Full caption with article link + WhatsApp group/channel + social links + contact
+     *
+     * Mobile  → Web Share API Level 2: image file + text in one native share sheet
+     * Desktop → downloads the article image, then opens WhatsApp with full caption
+     */
+    function doShare(article) {
+        var captionText = buildCaption(article);
+
+        // Always copy caption to clipboard for convenience
+        copyText(captionText);
+
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
+
+        fetchArticleImageBlob(article, function (imgBlob) {
+            var imgFile = imgBlob
+                ? new File([imgBlob], 'news-image-' + (article.id || 'nmg') + '.jpg', { type: 'image/jpeg' })
+                : null;
+
+            // ── Mobile: Web Share API Level 2 (image + text in one share) ──
+            if (imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] }) && navigator.share) {
+                navigator.share({
+                    files: [imgFile],
+                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                    text: captionText
+                }).then(function () {
+                    toast('✅ बातमीचा फोटो व सर्व लिंक्स एकत्र शेअर झाल्या!', 'success');
+                }).catch(function (err) {
+                    if (err && (err.name === 'AbortError' || err.code === 20)) return; // user cancelled
+                    // Fall back to text-only share if file share fails
+                    navigator.share({
+                        title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                        text: captionText,
+                        url: getArticleUrl(article)
+                    }).catch(function () {
+                        window.open(waUrl, '_blank', 'noopener');
+                    });
+                });
+                return;
+            }
+
+            // ── Mobile with basic share (no file support) ──
+            if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                navigator.share({
+                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                    text: captionText,
+                    url: getArticleUrl(article)
+                }).catch(function () {
+                    window.open(waUrl, '_blank', 'noopener');
+                });
+                return;
+            }
+
+            // ── Desktop fallback: download image + open WhatsApp with caption ──
+            if (imgBlob) {
+                downloadBlob(imgBlob, 'news-image-' + (article.id || 'nmg') + '.jpg');
+                toast('📷 फोटो डाउनलोड होत आहे... लिंक्स व्हॉट्सॲपमध्ये उघडत आहेत!', 'info');
+            }
+            setTimeout(function () {
+                window.open(waUrl, '_blank', 'noopener');
+            }, imgBlob ? 600 : 0);
+
+            if (!imgBlob) {
+                toast('✅ व्हॉट्सॲप उघडत आहे... बातमीची लिंक व सर्व माहिती तयार आहे!', 'success');
+            }
+        });
+
+        return buildShareJSON(article);
+    }
+
+    // Primary entry points — both do the same unified share
     window.shareDirectWhatsApp = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
             ? articleOrId
             : findArticleById(articleOrId);
-
         if (!article) {
             toast('माफ करा, बातमी सापडली नाही.', 'warning');
             return;
         }
-
-        var captionText = buildCaption(article);
-
-        // Always copy caption to clipboard for immediate convenience
-        copyText(captionText);
-
-        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-
-        // On mobile, if navigator.share is available without file restrictions, try native text share
-        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobile && navigator.share && !navigator.canShare) {
-            navigator.share({
-                title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                text: captionText,
-                url: getArticleUrl(article)
-            }).catch(function () {
-                window.open(waUrl, '_blank');
-            });
-            return;
-        }
-
-        window.open(waUrl, '_blank', 'noopener');
-        toast('✅ व्हॉट्सॲप उघडत आहे... बातमीची लिंक व सर्व माहिती तयार आहे!', 'success');
-        return buildShareJSON(article);
+        return doShare(article);
     };
 
-    // 2. Poster Image Share: Branded info card (image 1) + raw article image (image 2)
-    window.sharePosterImage = function (articleOrId) {
-        var article = (typeof articleOrId === 'object' && articleOrId !== null)
-            ? articleOrId
-            : findArticleById(articleOrId);
+    window.sharePosterImage = window.shareDirectWhatsApp;  // unified
+    window.shareNewsImage = window.shareDirectWhatsApp;  // unified
 
-        if (!article) {
-            toast('माफ करा, बातमी सापडली नाही.', 'warning');
-            return;
-        }
-
-        var captionText = buildCaption(article);
-
-        // Pre-copy caption text so user can easily paste if WhatsApp drops intent text
-        copyText(captionText);
-        toast('\uD83D\uDCCB बातमीचा मेसेज व सर्व लिंक्स कॉपी झाल्या! फोटो शेअर होत आहे...', 'info');
-
-        // Step 1: Generate branded info-card (image 1)
-        generateShareCardCanvas(article, function (cardBlob) {
-
-            // Step 2: Fetch the raw article image as a second separate image
-            fetchArticleImageBlob(article, function (articleImgBlob) {
-
-                var cardFile = cardBlob
-                    ? new File([cardBlob], 'nmg-card-' + article.id + '.jpg', { type: 'image/jpeg' })
-                    : null;
-
-                var articleFile = articleImgBlob
-                    ? new File([articleImgBlob], 'news-image-' + article.id + '.jpg', { type: 'image/jpeg' })
-                    : null;
-
-                // Build file list: [branded card, article image]
-                // Article image comes SECOND so it appears as the second image in WhatsApp
-                var files = [];
-                if (cardFile) files.push(cardFile);
-                if (articleFile) files.push(articleFile);
-
-                // 1. Mobile Web Share API Level 2 with files support
-                if (files.length > 0 && navigator.canShare && navigator.canShare({ files: files }) && navigator.share) {
-                    navigator.share({
-                        files: files,
-                        title: article.title || '\u0928\u094D\u092F\u0942 \u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930 \u0917\u0930\u094D\u091C\u0928\u093E',
-                        text: captionText
-                    }).then(function () {
-                        toast('\u2705 \u092C\u093E\u0924\u092E\u0940\u091A\u093E \u092B\u094B\u091F\u094B \u0935 \u0932\u093F\u0902\u0915 \u092F\u0936\u0938\u094D\u0935\u0940\u0930\u0940\u0924\u094D\u092F\u093E \u0936\u0947\u0905\u0930 \u091D\u093E\u0932\u0940!', 'success');
-                    }).catch(function (err) {
-                        if (err && (err.name === 'AbortError' || err.code === 20)) {
-                            return; // User cancelled
-                        }
-                        fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText);
-                    });
-                    return;
-                }
-
-                // 2. Desktop or unsupported file sharing fallback
-                fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText);
-            });
-        });
-
-        return buildShareJSON(article);
-    };
-
-    // 3. Unified WhatsApp Share: defaults to Direct WhatsApp with rich preview and links
-    window.shareOnWhatsApp = function (articleOrId, mode) {
-        if (mode === 'poster' || mode === 'image') {
-            return window.sharePosterImage(articleOrId);
-        }
+    window.shareOnWhatsApp = function (articleOrId) {
         return window.shareDirectWhatsApp(articleOrId);
     };
 
-    function fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText) {
-        // a) Download branded info card (image 1)
-        if (cardBlob) {
-            downloadBlob(cardBlob, 'nmg-card-' + article.id + '.jpg');
-        }
-
-        // b) Download the raw article image (image 2)
-        if (articleImgBlob) {
-            setTimeout(function () {
-                downloadBlob(articleImgBlob, 'news-image-' + article.id + '.jpg');
-            }, 400); // slight delay so browser doesn't block second download
-        }
-
-        // c) Open wa.me link with encoded caption text
-        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-        setTimeout(function () {
-            window.open(waUrl, '_blank', 'noopener');
-        }, 800);
-
-        // d) Marathi guidance toast
-        toast('\uD83D\uDCF7 \u0622\uCE34\u09CB\u0924\u094D\u0930 \u092B\u094B\u091F\u094B (\u0915\u093E\u0930\u094D\u0921 + \u092C\u093E\u0924\u092E\u0940 \u091A\u093F\u0924\u094D\u0930) \u0921\u093E\u0909\u0928\u0932\u094B\u0921 \u091D\u093E\u0932\u0947 \u0906\u0923\u093F \u0932\u093F\u0902\u0915\u094D\u0938 \u0935\u094D\u0939\u093E\u0911\u091F\u094D\u0938\u0910\u092A\u092E\u0927\u094D\u092F\u0947 \u091C\u094B\u0921\u0932\u094D\u092F\u093E \u0906\u0939\u0947\u0924!', 'info');
-    }
-
-    window.shareNewsImage = window.sharePosterImage;
+    /* ---------- Caption / JSON copy helpers ---------- */
 
     window.copyCaption = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
@@ -560,8 +420,8 @@
         getArticleUrl: getArticleUrl,
         shareOnWhatsApp: window.shareOnWhatsApp,
         shareDirectWhatsApp: window.shareDirectWhatsApp,
-        sharePosterImage: window.sharePosterImage,
-        shareNewsImage: window.sharePosterImage,
+        sharePosterImage: window.shareDirectWhatsApp,
+        shareNewsImage: window.shareDirectWhatsApp,
         copyCaption: window.copyCaption,
         copyShareCaption: window.copyCaption,
         copyShareJSON: window.copyShareJSON
