@@ -225,124 +225,128 @@
         return lines;
     }
 
+    /**
+     * Generates ONLY the branded NMG info/text card (no article image embedded).
+     * callback(blob, dataUrl)
+     */
     function generateShareCardCanvas(article, callback) {
         var t = getShareTemplate();
-        var src = getImageUrl(article);
 
-        var W = 1080, H = 1350;
-        var imgH = Math.round(H * 0.60);
-        var infoY = imgH;
-        var infoH = H - imgH;
+        // Card is info-panel only — full height
+        var W = 1080, H = 540;
 
         var canvas = document.createElement('canvas');
         canvas.width = W;
         canvas.height = H;
         var ctx = canvas.getContext('2d');
 
-        function drawInfoPanel() {
-            // Dark background
-            ctx.fillStyle = '#0E1A2B';
-            ctx.fillRect(0, infoY, W, infoH);
+        // Dark background
+        ctx.fillStyle = '#0E1A2B';
+        ctx.fillRect(0, 0, W, H);
 
-            // Red top accent bar
-            ctx.fillStyle = '#B80F0A';
-            ctx.fillRect(0, infoY, W, 7);
+        // Red top accent bar
+        ctx.fillStyle = '#B80F0A';
+        ctx.fillRect(0, 0, W, 7);
 
-            // Gold divider line
-            ctx.fillStyle = '#F59E0B';
-            ctx.fillRect(0, infoY + 7, W, 3);
+        // Gold divider line
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, 7, W, 3);
 
-            var pad = 38;
-            var maxW = W - pad * 2;
-            var y = infoY + 44;
+        var pad = 38;
+        var maxW = W - pad * 2;
+        var y = 60;
 
-            // Article title
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 34px "Noto Sans Devanagari", Arial, sans-serif';
-            var titleLines = wrapText(ctx, article.title || '', maxW);
-            titleLines.slice(0, 2).forEach(function (line) {
-                ctx.fillText(line, pad, y);
-                y += 44;
-            });
+        // Article title
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 36px "Noto Sans Devanagari", Arial, sans-serif';
+        var titleLines = wrapText(ctx, article.title || '', maxW);
+        titleLines.slice(0, 3).forEach(function (line) {
+            ctx.fillText(line, pad, y);
+            y += 48;
+        });
+        y += 8;
 
-            // Article URL
-            var articleUrl = getArticleUrl(article);
-            ctx.fillStyle = '#60A5FA';
-            ctx.font = '22px "Courier New", monospace';
-            ctx.fillText('🔗 ' + articleUrl, pad, y + 6);
-            y += 40;
+        // Article URL
+        var articleUrl = getArticleUrl(article);
+        ctx.fillStyle = '#60A5FA';
+        ctx.font = '22px "Courier New", monospace';
+        ctx.fillText('\uD83D\uDD17 ' + articleUrl, pad, y);
+        y += 44;
 
-            // Separator
-            ctx.strokeStyle = '#1E3A5F';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(pad, y + 8);
-            ctx.lineTo(W - pad, y + 8);
-            ctx.stroke();
-            y += 28;
+        // Separator
+        ctx.strokeStyle = '#1E3A5F';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(W - pad, y);
+        ctx.stroke();
+        y += 28;
 
-            // WhatsApp Channel Call to Action
-            ctx.fillStyle = '#4ADE80';
-            ctx.font = 'bold 24px "Noto Sans Devanagari", Arial, sans-serif';
-            var grpLines = wrapText(ctx, '📲 ' + t.groupHeading, maxW);
-            grpLines.slice(0, 2).forEach(function (line) {
-                ctx.fillText(line, pad, y);
-                y += 32;
-            });
-            ctx.fillStyle = '#86EFAC';
-            ctx.font = '21px "Courier New", monospace';
-            ctx.fillText(t.channelLink, pad, y);
-            y += 36;
+        // WhatsApp Channel Call to Action
+        ctx.fillStyle = '#4ADE80';
+        ctx.font = 'bold 24px "Noto Sans Devanagari", Arial, sans-serif';
+        var t2 = getShareTemplate();
+        var grpLines = wrapText(ctx, '\uD83D\uDCF2 ' + t2.groupHeading, maxW);
+        grpLines.slice(0, 2).forEach(function (line) {
+            ctx.fillText(line, pad, y);
+            y += 32;
+        });
+        ctx.fillStyle = '#86EFAC';
+        ctx.font = '21px "Courier New", monospace';
+        ctx.fillText(t2.channelLink, pad, y);
+        y += 40;
 
-            // Contact Info
-            ctx.fillStyle = '#FCD34D';
-            ctx.font = 'bold 28px "Noto Sans Devanagari", Arial, sans-serif';
-            ctx.fillText('📞 ' + t.contactLabel + '  ' + t.contactPhone, pad, y);
+        // Contact Info
+        ctx.fillStyle = '#FCD34D';
+        ctx.font = 'bold 26px "Noto Sans Devanagari", Arial, sans-serif';
+        ctx.fillText('\uD83D\uDCDE ' + (t2.contactLabel || '') + '  ' + t2.contactPhone, pad, y);
 
-            // Branding footer
-            ctx.fillStyle = '#64748B';
-            ctx.font = '18px Arial, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('न्यू महाराष्ट्र गर्जना  |  newmaharashtragarjana.com', W / 2, H - 18);
-            ctx.textAlign = 'left';
+        // Branding footer
+        ctx.fillStyle = '#64748B';
+        ctx.font = '18px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u0928\u094D\u092F\u0942 \u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930 \u0917\u0930\u094D\u091C\u0928\u093E  |  newmaharashtragarjana.com', W / 2, H - 18);
+        ctx.textAlign = 'left';
 
-            canvas.toBlob(function (b) {
-                callback(b, canvas.toDataURL('image/jpeg', 0.93));
-            }, 'image/jpeg', 0.93);
-        }
+        canvas.toBlob(function (b) {
+            callback(b, canvas.toDataURL('image/jpeg', 0.93));
+        }, 'image/jpeg', 0.93);
+    }
 
-        if (!src) {
-            var grad = ctx.createLinearGradient(0, 0, 0, imgH);
-            grad.addColorStop(0, '#0F172A');
-            grad.addColorStop(1, '#1E3A5F');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, W, imgH);
-            drawInfoPanel();
-            return;
-        }
+    /**
+     * Fetches the article image URL and returns it as a Blob via callback.
+     * callback(blob)  —  blob may be null if the image is unavailable or CORS-blocked.
+     */
+    function fetchArticleImageBlob(article, callback) {
+        var src = getImageUrl(article);
+        if (!src) { callback(null); return; }
 
+        // Try canvas-based fetch (handles crossOrigin gracefully)
         var img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = function () {
-            var aspect = img.naturalWidth / img.naturalHeight;
-            var targetAspect = W / imgH;
-            var rw, rh, rx, ry;
-            if (aspect > targetAspect) {
-                rh = imgH; rw = imgH * aspect;
-                rx = -(rw - W) / 2; ry = 0;
-            } else {
-                rw = W; rh = W / aspect;
-                rx = 0; ry = -(rh - imgH) / 2;
+            try {
+                var c = document.createElement('canvas');
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                c.toBlob(function (b) { callback(b); }, 'image/jpeg', 0.92);
+            } catch (e) {
+                // CORS taint — fall back to fetch()
+                fetch(src)
+                    .then(function (r) { return r.blob(); })
+                    .then(function (b) { callback(b); })
+                    .catch(function () { callback(null); });
             }
-            ctx.save();
-            ctx.rect(0, 0, W, imgH);
-            ctx.clip();
-            ctx.drawImage(img, rx, ry, rw, rh);
-            ctx.restore();
-            drawInfoPanel();
         };
-        img.onerror = function () { drawInfoPanel(); };
+        img.onerror = function () {
+            // Try fetch as last resort
+            fetch(src)
+                .then(function (r) { return r.blob(); })
+                .then(function (b) { callback(b); })
+                .catch(function () { callback(null); });
+        };
         img.src = src;
     }
 
@@ -423,7 +427,7 @@
         return buildShareJSON(article);
     };
 
-    // 2. Poster Image Share: Generates branded HD canvas image + auto-copies all links to clipboard
+    // 2. Poster Image Share: Branded info card (image 1) + raw article image (image 2)
     window.sharePosterImage = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
             ? articleOrId
@@ -438,30 +442,48 @@
 
         // Pre-copy caption text so user can easily paste if WhatsApp drops intent text
         copyText(captionText);
-        toast('📋 बातमीचा मेसेज व सर्व लिंक्स कॉपी झाल्या! फोटो शेअर होत आहे...', 'info');
+        toast('\uD83D\uDCCB बातमीचा मेसेज व सर्व लिंक्स कॉपी झाल्या! फोटो शेअर होत आहे...', 'info');
 
-        generateShareCardCanvas(article, function (blob) {
-            var file = blob ? new File([blob], 'news-' + article.id + '.jpg', { type: 'image/jpeg' }) : null;
+        // Step 1: Generate branded info-card (image 1)
+        generateShareCardCanvas(article, function (cardBlob) {
 
-            // 1. Mobile Web Share API Level 2 with files support
-            if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-                navigator.share({
-                    files: [file],
-                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                    text: captionText
-                }).then(function () {
-                    toast('✅ बातमीचा फोटो व लिंक यशस्वीरीत्या शेअर झाली!', 'success');
-                }).catch(function (err) {
-                    if (err && (err.name === 'AbortError' || err.code === 20)) {
-                        return; // User cancelled
-                    }
-                    fallbackDesktopShare(blob, article, captionText);
-                });
-                return;
-            }
+            // Step 2: Fetch the raw article image as a second separate image
+            fetchArticleImageBlob(article, function (articleImgBlob) {
 
-            // 2. Desktop or unsupported file sharing fallback
-            fallbackDesktopShare(blob, article, captionText);
+                var cardFile = cardBlob
+                    ? new File([cardBlob], 'nmg-card-' + article.id + '.jpg', { type: 'image/jpeg' })
+                    : null;
+
+                var articleFile = articleImgBlob
+                    ? new File([articleImgBlob], 'news-image-' + article.id + '.jpg', { type: 'image/jpeg' })
+                    : null;
+
+                // Build file list: [branded card, article image]
+                // Article image comes SECOND so it appears as the second image in WhatsApp
+                var files = [];
+                if (cardFile) files.push(cardFile);
+                if (articleFile) files.push(articleFile);
+
+                // 1. Mobile Web Share API Level 2 with files support
+                if (files.length > 0 && navigator.canShare && navigator.canShare({ files: files }) && navigator.share) {
+                    navigator.share({
+                        files: files,
+                        title: article.title || '\u0928\u094D\u092F\u0942 \u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930 \u0917\u0930\u094D\u091C\u0928\u093E',
+                        text: captionText
+                    }).then(function () {
+                        toast('\u2705 \u092C\u093E\u0924\u092E\u0940\u091A\u093E \u092B\u094B\u091F\u094B \u0935 \u0932\u093F\u0902\u0915 \u092F\u0936\u0938\u094D\u0935\u0940\u0930\u0940\u0924\u094D\u092F\u093E \u0936\u0947\u0905\u0930 \u091D\u093E\u0932\u0940!', 'success');
+                    }).catch(function (err) {
+                        if (err && (err.name === 'AbortError' || err.code === 20)) {
+                            return; // User cancelled
+                        }
+                        fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText);
+                    });
+                    return;
+                }
+
+                // 2. Desktop or unsupported file sharing fallback
+                fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText);
+            });
         });
 
         return buildShareJSON(article);
@@ -475,18 +497,27 @@
         return window.shareDirectWhatsApp(articleOrId);
     };
 
-    function fallbackDesktopShare(blob, article, captionText) {
-        // a) Automatically download the image
-        if (blob) {
-            downloadBlob(blob, 'news-' + article.id + '.jpg');
+    function fallbackDesktopShare(cardBlob, articleImgBlob, article, captionText) {
+        // a) Download branded info card (image 1)
+        if (cardBlob) {
+            downloadBlob(cardBlob, 'nmg-card-' + article.id + '.jpg');
         }
 
-        // b) Open wa.me link with encoded caption text
-        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-        window.open(waUrl, '_blank', 'noopener');
+        // b) Download the raw article image (image 2)
+        if (articleImgBlob) {
+            setTimeout(function () {
+                downloadBlob(articleImgBlob, 'news-image-' + article.id + '.jpg');
+            }, 400); // slight delay so browser doesn't block second download
+        }
 
-        // c) Marathi guidance toast
-        toast('फोटो डाउनलोड झाला आणि सर्व लिंक्स व्हॉट्सॲपमध्ये जोडल्या आहेत!', 'info');
+        // c) Open wa.me link with encoded caption text
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
+        setTimeout(function () {
+            window.open(waUrl, '_blank', 'noopener');
+        }, 800);
+
+        // d) Marathi guidance toast
+        toast('\uD83D\uDCF7 \u0622\uCE34\u09CB\u0924\u094D\u0930 \u092B\u094B\u091F\u094B (\u0915\u093E\u0930\u094D\u0921 + \u092C\u093E\u0924\u092E\u0940 \u091A\u093F\u0924\u094D\u0930) \u0921\u093E\u0909\u0928\u0932\u094B\u0921 \u091D\u093E\u0932\u0947 \u0906\u0923\u093F \u0932\u093F\u0902\u0915\u094D\u0938 \u0935\u094D\u0939\u093E\u0911\u091F\u094D\u0938\u0910\u092A\u092E\u0927\u094D\u092F\u0947 \u091C\u094B\u0921\u0932\u094D\u092F\u093E \u0906\u0939\u0947\u0924!', 'info');
     }
 
     window.shareNewsImage = window.sharePosterImage;
