@@ -1,8 +1,9 @@
 /* ============================================================
    whatsapp-share.js  —  New Maharashtra Garjana
-   Shares article image + all links in ONE WhatsApp message.
-   Mobile : Web Share API Level 2 (image file + caption text)
-   Desktop: downloads image, opens WhatsApp with full caption.
+   ONE combined image share:  [Article Photo on TOP]
+                               [All details text BELOW]
+   Mobile : Web Share API Level 2  →  one WhatsApp message
+   Desktop: downloads combined image, copies caption to clipboard
 
    Load AFTER firebase-config.js and BEFORE app.js:
      <script src="whatsapp-share.js"></script>
@@ -22,7 +23,6 @@
         'https://whatsapp.com/channel/0029VaqqNfx59PwNTUXxto3t'
     ];
 
-    // Default share template matching Admin Tab 5 defaults
     var DEFAULT_TEMPLATE = {
         groupHeading: 'पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा',
         groupLink: WA_LINK,
@@ -36,7 +36,6 @@
         contactPhone: '8530664576'
     };
 
-    // Form field id -> template key
     var FIELD_MAP = {
         shareTplGroupHeading: 'groupHeading',
         shareTplGroupLink: 'groupLink',
@@ -49,22 +48,19 @@
         shareTplContactPhone: 'contactPhone'
     };
 
-    /* ---------- template storage ---------- */
+    /* ─────────────── template storage ─────────────── */
 
     function getShareTemplate() {
         var saved = {};
         try {
-            saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem('nmg_share_template') || '{}');
-        } catch (e) {
-            saved = {};
-        }
+            saved = JSON.parse(
+                localStorage.getItem(STORAGE_KEY) ||
+                localStorage.getItem('nmg_share_template') || '{}'
+            );
+        } catch (e) { saved = {}; }
         var tpl = Object.assign({}, DEFAULT_TEMPLATE, saved);
-        if (!tpl.groupLink || OLD_LINKS.indexOf(tpl.groupLink.trim()) !== -1) {
-            tpl.groupLink = WA_LINK;
-        }
-        if (!tpl.channelLink || OLD_LINKS.indexOf(tpl.channelLink.trim()) !== -1) {
-            tpl.channelLink = WA_LINK;
-        }
+        if (!tpl.groupLink || OLD_LINKS.indexOf(tpl.groupLink.trim()) !== -1) tpl.groupLink = WA_LINK;
+        if (!tpl.channelLink || OLD_LINKS.indexOf(tpl.channelLink.trim()) !== -1) tpl.channelLink = WA_LINK;
         return tpl;
     }
 
@@ -73,7 +69,6 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(tpl));
             localStorage.setItem('nmg_share_template', JSON.stringify(tpl));
         } catch (e) { }
-
         try {
             if (window.db && typeof window.db.collection === 'function') {
                 window.db.collection('settings').doc('shareTemplate').set(tpl, { merge: true });
@@ -104,33 +99,30 @@
         }
     };
 
-    /* ---------- article finder ---------- */
+    /* ─────────────── article finder ─────────────── */
 
     function findArticleById(id) {
         if (!id && id !== 0) return null;
-        var stringId = String(id);
-
+        var sid = String(id);
         if (window.appState && window.appState.news) {
-            var categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
-            for (var c = 0; c < categories.length; c++) {
-                var list = window.appState.news[categories[c]];
+            var cats = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
+            for (var c = 0; c < cats.length; c++) {
+                var list = window.appState.news[cats[c]];
                 if (Array.isArray(list)) {
                     for (var j = 0; j < list.length; j++) {
-                        if (String(list[j].id) === stringId) return list[j];
+                        if (String(list[j].id) === sid) return list[j];
                     }
                 }
             }
         }
-
-        var globalList = window.newsData || window.articles || window.NEWS_DATA || [];
-        for (var i = 0; i < globalList.length; i++) {
-            if (String(globalList[i].id) === stringId) return globalList[i];
+        var gl = window.newsData || window.articles || window.NEWS_DATA || [];
+        for (var i = 0; i < gl.length; i++) {
+            if (String(gl[i].id) === sid) return gl[i];
         }
-
         return null;
     }
 
-    /* ---------- link + message builders ---------- */
+    /* ─────────────── URL / caption builders ─────────────── */
 
     function getArticleUrl(article) {
         if (article && article.url) return article.url;
@@ -149,34 +141,28 @@
         var title = (article && article.title ? String(article.title) : '').trim();
 
         var rawPhone = t.contactPhone || '8530664576';
-        var cleanDigits = rawPhone.replace(/\D/g, '');
-        if (cleanDigits.length === 10) cleanDigits = '91' + cleanDigits;
-        var waMeLink = 'https://wa.me/' + cleanDigits;
+        var digits = rawPhone.replace(/\D/g, '');
+        if (digits.length === 10) digits = '91' + digits;
+        var waMeLink = 'https://wa.me/' + digits;
 
-        var blocks = [
-            title + '\n🔗 पूर्ण बातमी वाचा: ' + url
-        ];
+        var blocks = [title + '\n🔗 पूर्ण बातमी वाचा: ' + url];
 
-        if (t.groupHeading && t.groupLink) {
+        if (t.groupHeading && t.groupLink)
             blocks.push('*' + t.groupHeading + '*\n' + t.groupLink);
-        }
 
-        if (t.channelHeading && t.channelLink) {
+        if (t.channelHeading && t.channelLink)
             blocks.push('*' + t.channelHeading + '*\n' + t.channelLink);
-        }
 
-        var socialLines = ['*आम्हाला फॉलो करा:*'];
-        if (t.facebookUrl) socialLines.push('📘 Facebook: ' + t.facebookUrl);
-        if (t.instagramUrl) socialLines.push('📸 Instagram: ' + t.instagramUrl);
-        if (t.youtubeUrl) socialLines.push('▶️ YouTube: ' + t.youtubeUrl);
-        if (t.websiteUrl) socialLines.push('🌐 Website: ' + t.websiteUrl);
-        if (socialLines.length > 1) {
-            blocks.push(socialLines.join('\n'));
-        }
+        var soc = ['*आम्हाला फॉलो करा:*'];
+        if (t.facebookUrl) soc.push('📘 Facebook: ' + t.facebookUrl);
+        if (t.instagramUrl) soc.push('📸 Instagram: ' + t.instagramUrl);
+        if (t.youtubeUrl) soc.push('▶️ YouTube: ' + t.youtubeUrl);
+        if (t.websiteUrl) soc.push('🌐 Website: ' + t.websiteUrl);
+        if (soc.length > 1) blocks.push(soc.join('\n'));
 
         if (t.contactPhone) {
-            var label = t.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:';
-            blocks.push('*' + label + '*\n*' + t.contactPhone + '*  (' + waMeLink + ')');
+            var lbl = t.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:';
+            blocks.push('*' + lbl + '*\n*' + t.contactPhone + '*  (' + waMeLink + ')');
         }
 
         return blocks.join('\n\n');
@@ -189,7 +175,6 @@
         var caption = buildCaption(article, t);
         var url = getArticleUrl(article);
         var id = article && (article.id !== undefined ? article.id : '');
-
         return {
             articleId: id,
             title: article && article.title ? article.title : '',
@@ -208,45 +193,280 @@
         };
     }
 
-    /* ---------- Image fetch helper ---------- */
+    /* ─────────────── Canvas helpers ─────────────── */
+
+    var CANVAS_W = 1080;   // fixed width
+    var IMG_H = 607;    // article image section height  (≈ 16:9 crop)
+    var INFO_PAD = 36;     // padding inside info section
+    var LINE_GAP = 10;     // extra gap between text rows
+    var FONT_BODY = 'bold 28px "Noto Sans Devanagari", Arial, sans-serif';
+    var FONT_URL = '22px "Courier New", monospace';
+    var FONT_SM = '22px "Noto Sans Devanagari", Arial, sans-serif';
+
+    /** Wrap text onto multiple lines, respecting maxWidth. Returns string[]. */
+    function wrapText(ctx, text, maxWidth) {
+        var words = text.split(/\s+/);
+        var lines = [], cur = '';
+        words.forEach(function (w) {
+            var test = cur ? cur + ' ' + w : w;
+            if (ctx.measureText(test).width > maxWidth && cur) {
+                lines.push(cur);
+                cur = w;
+            } else {
+                cur = test;
+            }
+        });
+        if (cur) lines.push(cur);
+        return lines;
+    }
 
     /**
-     * Fetches the article image URL and returns it as a Blob via callback.
-     * callback(blob)  —  blob may be null if the image is unavailable or CORS-blocked.
+     * Draw a single text block on the canvas.
+     * Returns the new Y position after the block.
      */
-    function fetchArticleImageBlob(article, callback) {
+    function drawBlock(ctx, lines, x, startY, lineH, color, font) {
+        ctx.fillStyle = color;
+        ctx.font = font;
+        lines.forEach(function (line) {
+            ctx.fillText(line, x, startY);
+            startY += lineH;
+        });
+        return startY + LINE_GAP;
+    }
+
+    /**
+     * Measures how tall the info section needs to be given the template.
+     * Returns pixels needed.
+     */
+    function measureInfoHeight(ctx, article, tpl) {
+        var maxW = CANVAS_W - INFO_PAD * 2;
+        var total = INFO_PAD; // top padding
+
+        function add(font, text, lineH) {
+            ctx.font = font;
+            var ls = wrapText(ctx, text, maxW);
+            total += ls.length * lineH + LINE_GAP;
+        }
+
+        var title = (article && article.title ? String(article.title) : '').trim();
+        add(FONT_BODY, title, 36);
+        add(FONT_URL, '🔗 ' + getArticleUrl(article), 28);
+        total += 14; // divider
+
+        if (tpl.groupHeading && tpl.groupLink) {
+            add(FONT_BODY, tpl.groupHeading, 34);
+            add(FONT_URL, tpl.groupLink, 26);
+        }
+        if (tpl.channelHeading && tpl.channelLink) {
+            add(FONT_BODY, tpl.channelHeading, 34);
+            add(FONT_URL, tpl.channelLink, 26);
+        }
+
+        add(FONT_BODY, 'आम्हाला फॉलो करा:', 32);
+        if (tpl.facebookUrl) add(FONT_SM, '📘 Facebook: ' + tpl.facebookUrl, 28);
+        if (tpl.instagramUrl) add(FONT_SM, '📸 Instagram: ' + tpl.instagramUrl, 28);
+        if (tpl.youtubeUrl) add(FONT_SM, '▶️ YouTube: ' + tpl.youtubeUrl, 28);
+        if (tpl.websiteUrl) add(FONT_SM, '🌐 Website: ' + tpl.websiteUrl, 28);
+
+        if (tpl.contactPhone) {
+            var digits = tpl.contactPhone.replace(/\D/g, '');
+            if (digits.length === 10) digits = '91' + digits;
+            add(FONT_BODY, (tpl.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:'), 32);
+            add(FONT_URL, tpl.contactPhone + '   wa.me/' + digits, 28);
+        }
+
+        total += INFO_PAD; // bottom padding
+        return total;
+    }
+
+    /**
+     * generateCombinedCanvas(article, articleImg|null, callback)
+     *
+     * Produces ONE canvas:
+     *   ┌────────────────────────┐
+     *   │   Article Photo  (top) │  IMG_H px
+     *   ├────────────────────────┤
+     *   │   Headline             │
+     *   │   Article link         │
+     *   │   WA group / channel   │  info section
+     *   │   Social links         │
+     *   │   Contact              │
+     *   └────────────────────────┘
+     *
+     * callback(blob, dataUrl)
+     */
+    function generateCombinedCanvas(article, articleImg, callback) {
+        var t = getShareTemplate();
+        var maxW = CANVAS_W - INFO_PAD * 2;
+
+        // Temp canvas to measure info height
+        var tmp = document.createElement('canvas');
+        tmp.width = CANVAS_W;
+        tmp.height = 10;
+        var tmpCtx = tmp.getContext('2d');
+
+        var infoH = measureInfoHeight(tmpCtx, article, t);
+        var totalH = IMG_H + infoH;
+
+        var canvas = document.createElement('canvas');
+        canvas.width = CANVAS_W;
+        canvas.height = totalH;
+        var ctx = canvas.getContext('2d');
+
+        /* ── TOP: article photo ── */
+        if (articleImg) {
+            // Cover-fit: fill IMG_H × CANVAS_W, crop centre
+            var iw = articleImg.naturalWidth || articleImg.width;
+            var ih = articleImg.naturalHeight || articleImg.height;
+            var scale = Math.max(CANVAS_W / iw, IMG_H / ih);
+            var sw = CANVAS_W / scale;
+            var sh = IMG_H / scale;
+            var sx = (iw - sw) / 2;
+            var sy = (ih - sh) / 2;
+            ctx.drawImage(articleImg, sx, sy, sw, sh, 0, 0, CANVAS_W, IMG_H);
+        } else {
+            // Placeholder dark gradient if no image
+            var grd = ctx.createLinearGradient(0, 0, 0, IMG_H);
+            grd.addColorStop(0, '#0E1A2B');
+            grd.addColorStop(1, '#1E3A5F');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, CANVAS_W, IMG_H);
+            ctx.fillStyle = '#64748B';
+            ctx.font = '32px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('न्यू महाराष्ट्र गर्जना', CANVAS_W / 2, IMG_H / 2);
+            ctx.textAlign = 'left';
+        }
+
+        /* Red top bar */
+        ctx.fillStyle = '#B80F0A';
+        ctx.fillRect(0, 0, CANVAS_W, 7);
+        /* Gold accent below bar */
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, 7, CANVAS_W, 3);
+
+        /* ── BOTTOM: dark info section ── */
+        ctx.fillStyle = '#0E1A2B';
+        ctx.fillRect(0, IMG_H, CANVAS_W, infoH);
+
+        /* Divider between image and info */
+        ctx.fillStyle = '#B80F0A';
+        ctx.fillRect(0, IMG_H, CANVAS_W, 5);
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, IMG_H + 5, CANVAS_W, 3);
+
+        var x = INFO_PAD;
+        var y = IMG_H + INFO_PAD + 32;
+
+        /* Title */
+        var title = (article && article.title ? String(article.title) : '').trim();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = FONT_BODY;
+        var titleLines = wrapText(ctx, title, maxW);
+        titleLines.slice(0, 3).forEach(function (line) {
+            ctx.fillText(line, x, y);
+            y += 38;
+        });
+        y += LINE_GAP;
+
+        /* Article link */
+        ctx.fillStyle = '#60A5FA';
+        ctx.font = FONT_URL;
+        ctx.fillText('🔗 ' + getArticleUrl(article), x, y);
+        y += 30 + LINE_GAP;
+
+        /* Thin separator */
+        ctx.strokeStyle = '#1E3A5F';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y); ctx.lineTo(CANVAS_W - x, y);
+        ctx.stroke();
+        y += 18;
+
+        /* WhatsApp group */
+        if (t.groupHeading && t.groupLink) {
+            ctx.fillStyle = '#4ADE80';
+            ctx.font = FONT_BODY;
+            wrapText(ctx, t.groupHeading, maxW).slice(0, 2).forEach(function (l) {
+                ctx.fillText(l, x, y); y += 34;
+            });
+            ctx.fillStyle = '#86EFAC';
+            ctx.font = FONT_URL;
+            ctx.fillText(t.groupLink, x, y);
+            y += 30 + LINE_GAP;
+        }
+
+        /* WhatsApp channel */
+        if (t.channelHeading && t.channelLink) {
+            ctx.fillStyle = '#4ADE80';
+            ctx.font = FONT_BODY;
+            wrapText(ctx, t.channelHeading, maxW).slice(0, 2).forEach(function (l) {
+                ctx.fillText(l, x, y); y += 34;
+            });
+            ctx.fillStyle = '#86EFAC';
+            ctx.font = FONT_URL;
+            ctx.fillText(t.channelLink, x, y);
+            y += 30 + LINE_GAP;
+        }
+
+        /* Social links */
+        ctx.fillStyle = '#FCD34D';
+        ctx.font = FONT_BODY;
+        ctx.fillText('आम्हाला फॉलो करा:', x, y);
+        y += 34 + LINE_GAP;
+
+        ctx.font = FONT_SM;
+        var socItems = [];
+        if (t.facebookUrl) socItems.push('📘 Facebook: ' + t.facebookUrl);
+        if (t.instagramUrl) socItems.push('📸 Instagram: ' + t.instagramUrl);
+        if (t.youtubeUrl) socItems.push('▶️ YouTube: ' + t.youtubeUrl);
+        if (t.websiteUrl) socItems.push('🌐 Website: ' + t.websiteUrl);
+        socItems.forEach(function (s) {
+            ctx.fillStyle = '#CBD5E1';
+            ctx.fillText(s, x, y);
+            y += 30;
+        });
+        y += LINE_GAP;
+
+        /* Contact */
+        if (t.contactPhone) {
+            var digits = t.contactPhone.replace(/\D/g, '');
+            if (digits.length === 10) digits = '91' + digits;
+            ctx.fillStyle = '#F87171';
+            ctx.font = FONT_BODY;
+            ctx.fillText(t.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:', x, y);
+            y += 34;
+            ctx.fillStyle = '#FBBF24';
+            ctx.font = FONT_URL;
+            ctx.fillText(t.contactPhone + '   wa.me/' + digits, x, y);
+        }
+
+        /* Branding footer */
+        ctx.fillStyle = '#475569';
+        ctx.font = '19px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('न्यू महाराष्ट्र गर्जना  |  newmaharashtragarjana.com', CANVAS_W / 2, totalH - 14);
+        ctx.textAlign = 'left';
+
+        canvas.toBlob(function (b) {
+            callback(b, canvas.toDataURL('image/jpeg', 0.93));
+        }, 'image/jpeg', 0.93);
+    }
+
+    /* ─────────────── Image load helper ─────────────── */
+
+    function loadArticleImage(article, callback) {
         var src = getImageUrl(article);
         if (!src) { callback(null); return; }
 
-        // Try canvas-based fetch (handles crossOrigin gracefully)
         var img = new Image();
         img.crossOrigin = 'anonymous';
-        img.onload = function () {
-            try {
-                var c = document.createElement('canvas');
-                c.width = img.naturalWidth;
-                c.height = img.naturalHeight;
-                c.getContext('2d').drawImage(img, 0, 0);
-                c.toBlob(function (b) { callback(b); }, 'image/jpeg', 0.92);
-            } catch (e) {
-                // CORS taint — fall back to fetch()
-                fetch(src)
-                    .then(function (r) { return r.blob(); })
-                    .then(function (b) { callback(b); })
-                    .catch(function () { callback(null); });
-            }
-        };
-        img.onerror = function () {
-            // Try fetch as last resort
-            fetch(src)
-                .then(function (r) { return r.blob(); })
-                .then(function (b) { callback(b); })
-                .catch(function () { callback(null); });
-        };
+        img.onload = function () { callback(img); };
+        img.onerror = function () { callback(null); };
         img.src = src;
     }
 
-    /* ---------- UI helpers ---------- */
+    /* ─────────────── UI helpers ─────────────── */
 
     function toast(msg, type) {
         if (typeof window.showToast === 'function') {
@@ -255,8 +475,10 @@
         }
         var el = document.createElement('div');
         el.textContent = msg;
-        el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;' +
-            'padding:12px 18px;border-radius:10px;z-index:99999;font:600 14px "Noto Sans Devanagari",sans-serif;' +
+        el.style.cssText =
+            'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);' +
+            'background:#111;color:#fff;padding:12px 18px;border-radius:10px;' +
+            'z-index:99999;font:600 14px "Noto Sans Devanagari",sans-serif;' +
             'max-width:90%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.35)';
         document.body.appendChild(el);
         setTimeout(function () { el.remove(); }, 4500);
@@ -285,83 +507,84 @@
         return Promise.resolve();
     }
 
-    /* ---------- MAIN SHARE ACTION ---------- */
+    /* ─────────────── MAIN SHARE ACTION ─────────────── */
 
     /**
-     * shareOnWhatsApp / shareDirectWhatsApp
-     * ──────────────────────────────────────
-     * ONE message on WhatsApp containing:
-     *   • Article image  (as attached file on mobile / downloaded on desktop)
-     *   • Full caption with article link + WhatsApp group/channel + social links + contact
+     * doShare(article)
+     * ────────────────
+     * Generates ONE combined image:
+     *   [Article photo — top]
+     *   [All text details — below]
      *
-     * Mobile  → Web Share API Level 2: image file + text in one native share sheet
-     * Desktop → downloads the article image, then opens WhatsApp with full caption
+     * Mobile  → navigator.share({ files: [combinedImg] }) → ONE WhatsApp message
+     * Desktop → downloads combined image + opens WA with caption text
+     *
+     * Caption text is always copied to clipboard (clickable links).
      */
     function doShare(article) {
         var captionText = buildCaption(article);
+        copyText(captionText);   // clipboard — for clickable links on desktop paste
 
-        // Always copy caption to clipboard for convenience
-        copyText(captionText);
+        toast('📸 फोटो तयार होत आहे, एक क्षण...', 'info');
 
-        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-
-        fetchArticleImageBlob(article, function (imgBlob) {
-            var imgFile = imgBlob
-                ? new File([imgBlob], 'news-image-' + (article.id || 'nmg') + '.jpg', { type: 'image/jpeg' })
-                : null;
-
-            // ── Mobile: Web Share API Level 2 (image + text in one share) ──
-            if (imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] }) && navigator.share) {
-                navigator.share({
-                    files: [imgFile],
-                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                    text: captionText
-                }).then(function () {
-                    toast('✅ बातमीचा फोटो व सर्व लिंक्स एकत्र शेअर झाल्या!', 'success');
-                }).catch(function (err) {
-                    if (err && (err.name === 'AbortError' || err.code === 20)) return; // user cancelled
-                    // Fall back to text-only share if file share fails
-                    navigator.share({
-                        title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                        text: captionText,
-                        url: getArticleUrl(article)
-                    }).catch(function () {
-                        window.open(waUrl, '_blank', 'noopener');
-                    });
-                });
-                return;
-            }
-
-            // ── Mobile with basic share (no file support) ──
-            if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                navigator.share({
-                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                    text: captionText,
-                    url: getArticleUrl(article)
-                }).catch(function () {
+        loadArticleImage(article, function (imgEl) {
+            generateCombinedCanvas(article, imgEl, function (combinedBlob) {
+                if (!combinedBlob) {
+                    // Fallback: open WA with text only if canvas fails
+                    var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
                     window.open(waUrl, '_blank', 'noopener');
-                });
-                return;
-            }
+                    toast('✅ व्हॉट्सॲप उघडत आहे... लिंक्स clipboard मध्ये कॉपी आहेत.', 'success');
+                    return;
+                }
 
-            // ── Desktop fallback: download image + open WhatsApp with caption ──
-            if (imgBlob) {
-                downloadBlob(imgBlob, 'news-image-' + (article.id || 'nmg') + '.jpg');
-                toast('📷 फोटो डाउनलोड होत आहे... लिंक्स व्हॉट्सॲपमध्ये उघडत आहेत!', 'info');
-            }
-            setTimeout(function () {
-                window.open(waUrl, '_blank', 'noopener');
-            }, imgBlob ? 600 : 0);
+                var fname = 'nmg-share-' + (article.id || 'news') + '.jpg';
+                var combinedFile = new File([combinedBlob], fname, { type: 'image/jpeg' });
 
-            if (!imgBlob) {
-                toast('✅ व्हॉट्सॲप उघडत आहे... बातमीची लिंक व सर्व माहिती तयार आहे!', 'success');
-            }
+                /* ── Mobile: Web Share API Level 2  (ONE image = ONE WA message) ── */
+                if (
+                    navigator.canShare &&
+                    navigator.canShare({ files: [combinedFile] }) &&
+                    navigator.share
+                ) {
+                    navigator.share({
+                        files: [combinedFile],
+                        title: article.title || 'न्यू महाराष्ट्र गर्जना'
+                        // Note: 'text' omitted intentionally — WhatsApp on Android
+                        // shows text as a SEPARATE second message when files are present.
+                        // All info is already drawn inside the image itself.
+                    }).then(function () {
+                        toast('✅ बातमी एका मेसेजमध्ये यशस्वीरित्या शेअर झाली!', 'success');
+                    }).catch(function (err) {
+                        if (err && (err.name === 'AbortError' || err.code === 20)) return;
+                        // If file share fails, try text share
+                        if (navigator.share) {
+                            navigator.share({
+                                title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                                text: captionText,
+                                url: getArticleUrl(article)
+                            }).catch(function () {
+                                var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
+                                window.open(waUrl, '_blank', 'noopener');
+                            });
+                        }
+                    });
+                    return;
+                }
+
+                /* ── Desktop fallback: download the combined image ── */
+                downloadBlob(combinedBlob, fname);
+                toast(
+                    '📥 Combined image डाउनलोड झाली! WhatsApp मध्ये attach करा — links clipboard मध्ये आहेत.',
+                    'info'
+                );
+            });
         });
 
         return buildShareJSON(article);
     }
 
-    // Primary entry points — both do the same unified share
+    /* ─────────────── Public entry points ─────────────── */
+
     window.shareDirectWhatsApp = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
             ? articleOrId
@@ -373,21 +596,20 @@
         return doShare(article);
     };
 
-    window.sharePosterImage = window.shareDirectWhatsApp;  // unified
-    window.shareNewsImage = window.shareDirectWhatsApp;  // unified
+    window.sharePosterImage = window.shareDirectWhatsApp;
+    window.shareNewsImage = window.shareDirectWhatsApp;
 
     window.shareOnWhatsApp = function (articleOrId) {
         return window.shareDirectWhatsApp(articleOrId);
     };
 
-    /* ---------- Caption / JSON copy helpers ---------- */
+    /* ─────────────── Caption / JSON copy helpers ─────────────── */
 
     window.copyCaption = function (articleOrId) {
         var article = (typeof articleOrId === 'object' && articleOrId !== null)
             ? articleOrId
             : findArticleById(articleOrId);
         if (!article) return null;
-
         var captionText = buildCaption(article);
         copyText(captionText).then(function () {
             toast('📋 व्हॉट्सॲप मेसेज आणि लिंक्स कॉपी झाल्या!', 'success');
@@ -409,7 +631,7 @@
         return json;
     };
 
-    /* ---------- Export Global API ---------- */
+    /* ─────────────── Global API ─────────────── */
 
     window.NMGShare = {
         getShareTemplate: getShareTemplate,
