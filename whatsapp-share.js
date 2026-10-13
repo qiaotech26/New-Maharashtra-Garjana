@@ -1,9 +1,20 @@
 /* ============================================================
    whatsapp-share.js  —  New Maharashtra Garjana
-   ONE combined image share:  [Article Photo on TOP]
-                               [All details text BELOW]
-   Mobile : Web Share API Level 2  →  one WhatsApp message
-   Desktop: downloads combined image, copies caption to clipboard
+
+   Result in WhatsApp (ONE message):
+   ┌──────────────────────────────┐
+   │   [  Article Photo  ]        │  ← real article image
+   ├──────────────────────────────┤
+   │  Headline + 🔗 article link  │
+   │  WhatsApp group link         │  ← all links are TAPPABLE
+   │  WhatsApp channel link       │
+   │  Social links (FB/IG/YT/Web) │
+   │  Contact + wa.me link        │
+   └──────────────────────────────┘
+
+   Mobile  → navigator.share({ files:[image], text:caption })
+             → WhatsApp: photo on top, clickable links below (1 message)
+   Desktop → image downloads + WhatsApp opens with caption pre-filled
 
    Load AFTER firebase-config.js and BEFORE app.js:
      <script src="whatsapp-share.js"></script>
@@ -135,6 +146,10 @@
         return article.image || article.img || article.imageUrl || article.photo || article.thumbnail || '';
     }
 
+    /**
+     * buildCaption — full text message with all clickable links.
+     * In WhatsApp this appears as the CAPTION below the article photo.
+     */
     function buildCaption(article, templateOverride) {
         var t = Object.assign({}, getShareTemplate(), templateOverride || {});
         var url = getArticleUrl(article);
@@ -193,276 +208,42 @@
         };
     }
 
-    /* ─────────────── Canvas helpers ─────────────── */
-
-    var CANVAS_W = 1080;   // fixed width
-    var IMG_H = 607;    // article image section height  (≈ 16:9 crop)
-    var INFO_PAD = 36;     // padding inside info section
-    var LINE_GAP = 10;     // extra gap between text rows
-    var FONT_BODY = 'bold 28px "Noto Sans Devanagari", Arial, sans-serif';
-    var FONT_URL = '22px "Courier New", monospace';
-    var FONT_SM = '22px "Noto Sans Devanagari", Arial, sans-serif';
-
-    /** Wrap text onto multiple lines, respecting maxWidth. Returns string[]. */
-    function wrapText(ctx, text, maxWidth) {
-        var words = text.split(/\s+/);
-        var lines = [], cur = '';
-        words.forEach(function (w) {
-            var test = cur ? cur + ' ' + w : w;
-            if (ctx.measureText(test).width > maxWidth && cur) {
-                lines.push(cur);
-                cur = w;
-            } else {
-                cur = test;
-            }
-        });
-        if (cur) lines.push(cur);
-        return lines;
-    }
+    /* ─────────────── Image fetch helper ─────────────── */
 
     /**
-     * Draw a single text block on the canvas.
-     * Returns the new Y position after the block.
+     * Fetches the article image and returns a Blob via callback.
+     * Tries canvas (crossOrigin) first, then fetch(), then gives null.
      */
-    function drawBlock(ctx, lines, x, startY, lineH, color, font) {
-        ctx.fillStyle = color;
-        ctx.font = font;
-        lines.forEach(function (line) {
-            ctx.fillText(line, x, startY);
-            startY += lineH;
-        });
-        return startY + LINE_GAP;
-    }
-
-    /**
-     * Measures how tall the info section needs to be given the template.
-     * Returns pixels needed.
-     */
-    function measureInfoHeight(ctx, article, tpl) {
-        var maxW = CANVAS_W - INFO_PAD * 2;
-        var total = INFO_PAD; // top padding
-
-        function add(font, text, lineH) {
-            ctx.font = font;
-            var ls = wrapText(ctx, text, maxW);
-            total += ls.length * lineH + LINE_GAP;
-        }
-
-        var title = (article && article.title ? String(article.title) : '').trim();
-        add(FONT_BODY, title, 36);
-        add(FONT_URL, '🔗 ' + getArticleUrl(article), 28);
-        total += 14; // divider
-
-        if (tpl.groupHeading && tpl.groupLink) {
-            add(FONT_BODY, tpl.groupHeading, 34);
-            add(FONT_URL, tpl.groupLink, 26);
-        }
-        if (tpl.channelHeading && tpl.channelLink) {
-            add(FONT_BODY, tpl.channelHeading, 34);
-            add(FONT_URL, tpl.channelLink, 26);
-        }
-
-        add(FONT_BODY, 'आम्हाला फॉलो करा:', 32);
-        if (tpl.facebookUrl) add(FONT_SM, '📘 Facebook: ' + tpl.facebookUrl, 28);
-        if (tpl.instagramUrl) add(FONT_SM, '📸 Instagram: ' + tpl.instagramUrl, 28);
-        if (tpl.youtubeUrl) add(FONT_SM, '▶️ YouTube: ' + tpl.youtubeUrl, 28);
-        if (tpl.websiteUrl) add(FONT_SM, '🌐 Website: ' + tpl.websiteUrl, 28);
-
-        if (tpl.contactPhone) {
-            var digits = tpl.contactPhone.replace(/\D/g, '');
-            if (digits.length === 10) digits = '91' + digits;
-            add(FONT_BODY, (tpl.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:'), 32);
-            add(FONT_URL, tpl.contactPhone + '   wa.me/' + digits, 28);
-        }
-
-        total += INFO_PAD; // bottom padding
-        return total;
-    }
-
-    /**
-     * generateCombinedCanvas(article, articleImg|null, callback)
-     *
-     * Produces ONE canvas:
-     *   ┌────────────────────────┐
-     *   │   Article Photo  (top) │  IMG_H px
-     *   ├────────────────────────┤
-     *   │   Headline             │
-     *   │   Article link         │
-     *   │   WA group / channel   │  info section
-     *   │   Social links         │
-     *   │   Contact              │
-     *   └────────────────────────┘
-     *
-     * callback(blob, dataUrl)
-     */
-    function generateCombinedCanvas(article, articleImg, callback) {
-        var t = getShareTemplate();
-        var maxW = CANVAS_W - INFO_PAD * 2;
-
-        // Temp canvas to measure info height
-        var tmp = document.createElement('canvas');
-        tmp.width = CANVAS_W;
-        tmp.height = 10;
-        var tmpCtx = tmp.getContext('2d');
-
-        var infoH = measureInfoHeight(tmpCtx, article, t);
-        var totalH = IMG_H + infoH;
-
-        var canvas = document.createElement('canvas');
-        canvas.width = CANVAS_W;
-        canvas.height = totalH;
-        var ctx = canvas.getContext('2d');
-
-        /* ── TOP: article photo ── */
-        if (articleImg) {
-            // Cover-fit: fill IMG_H × CANVAS_W, crop centre
-            var iw = articleImg.naturalWidth || articleImg.width;
-            var ih = articleImg.naturalHeight || articleImg.height;
-            var scale = Math.max(CANVAS_W / iw, IMG_H / ih);
-            var sw = CANVAS_W / scale;
-            var sh = IMG_H / scale;
-            var sx = (iw - sw) / 2;
-            var sy = (ih - sh) / 2;
-            ctx.drawImage(articleImg, sx, sy, sw, sh, 0, 0, CANVAS_W, IMG_H);
-        } else {
-            // Placeholder dark gradient if no image
-            var grd = ctx.createLinearGradient(0, 0, 0, IMG_H);
-            grd.addColorStop(0, '#0E1A2B');
-            grd.addColorStop(1, '#1E3A5F');
-            ctx.fillStyle = grd;
-            ctx.fillRect(0, 0, CANVAS_W, IMG_H);
-            ctx.fillStyle = '#64748B';
-            ctx.font = '32px Arial, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('न्यू महाराष्ट्र गर्जना', CANVAS_W / 2, IMG_H / 2);
-            ctx.textAlign = 'left';
-        }
-
-        /* Red top bar */
-        ctx.fillStyle = '#B80F0A';
-        ctx.fillRect(0, 0, CANVAS_W, 7);
-        /* Gold accent below bar */
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(0, 7, CANVAS_W, 3);
-
-        /* ── BOTTOM: dark info section ── */
-        ctx.fillStyle = '#0E1A2B';
-        ctx.fillRect(0, IMG_H, CANVAS_W, infoH);
-
-        /* Divider between image and info */
-        ctx.fillStyle = '#B80F0A';
-        ctx.fillRect(0, IMG_H, CANVAS_W, 5);
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(0, IMG_H + 5, CANVAS_W, 3);
-
-        var x = INFO_PAD;
-        var y = IMG_H + INFO_PAD + 32;
-
-        /* Title */
-        var title = (article && article.title ? String(article.title) : '').trim();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = FONT_BODY;
-        var titleLines = wrapText(ctx, title, maxW);
-        titleLines.slice(0, 3).forEach(function (line) {
-            ctx.fillText(line, x, y);
-            y += 38;
-        });
-        y += LINE_GAP;
-
-        /* Article link */
-        ctx.fillStyle = '#60A5FA';
-        ctx.font = FONT_URL;
-        ctx.fillText('🔗 ' + getArticleUrl(article), x, y);
-        y += 30 + LINE_GAP;
-
-        /* Thin separator */
-        ctx.strokeStyle = '#1E3A5F';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, y); ctx.lineTo(CANVAS_W - x, y);
-        ctx.stroke();
-        y += 18;
-
-        /* WhatsApp group */
-        if (t.groupHeading && t.groupLink) {
-            ctx.fillStyle = '#4ADE80';
-            ctx.font = FONT_BODY;
-            wrapText(ctx, t.groupHeading, maxW).slice(0, 2).forEach(function (l) {
-                ctx.fillText(l, x, y); y += 34;
-            });
-            ctx.fillStyle = '#86EFAC';
-            ctx.font = FONT_URL;
-            ctx.fillText(t.groupLink, x, y);
-            y += 30 + LINE_GAP;
-        }
-
-        /* WhatsApp channel */
-        if (t.channelHeading && t.channelLink) {
-            ctx.fillStyle = '#4ADE80';
-            ctx.font = FONT_BODY;
-            wrapText(ctx, t.channelHeading, maxW).slice(0, 2).forEach(function (l) {
-                ctx.fillText(l, x, y); y += 34;
-            });
-            ctx.fillStyle = '#86EFAC';
-            ctx.font = FONT_URL;
-            ctx.fillText(t.channelLink, x, y);
-            y += 30 + LINE_GAP;
-        }
-
-        /* Social links */
-        ctx.fillStyle = '#FCD34D';
-        ctx.font = FONT_BODY;
-        ctx.fillText('आम्हाला फॉलो करा:', x, y);
-        y += 34 + LINE_GAP;
-
-        ctx.font = FONT_SM;
-        var socItems = [];
-        if (t.facebookUrl) socItems.push('📘 Facebook: ' + t.facebookUrl);
-        if (t.instagramUrl) socItems.push('📸 Instagram: ' + t.instagramUrl);
-        if (t.youtubeUrl) socItems.push('▶️ YouTube: ' + t.youtubeUrl);
-        if (t.websiteUrl) socItems.push('🌐 Website: ' + t.websiteUrl);
-        socItems.forEach(function (s) {
-            ctx.fillStyle = '#CBD5E1';
-            ctx.fillText(s, x, y);
-            y += 30;
-        });
-        y += LINE_GAP;
-
-        /* Contact */
-        if (t.contactPhone) {
-            var digits = t.contactPhone.replace(/\D/g, '');
-            if (digits.length === 10) digits = '91' + digits;
-            ctx.fillStyle = '#F87171';
-            ctx.font = FONT_BODY;
-            ctx.fillText(t.contactLabel || 'बातम्या / जाहिरातींकरता संपर्क:', x, y);
-            y += 34;
-            ctx.fillStyle = '#FBBF24';
-            ctx.font = FONT_URL;
-            ctx.fillText(t.contactPhone + '   wa.me/' + digits, x, y);
-        }
-
-        /* Branding footer */
-        ctx.fillStyle = '#475569';
-        ctx.font = '19px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('न्यू महाराष्ट्र गर्जना  |  newmaharashtragarjana.com', CANVAS_W / 2, totalH - 14);
-        ctx.textAlign = 'left';
-
-        canvas.toBlob(function (b) {
-            callback(b, canvas.toDataURL('image/jpeg', 0.93));
-        }, 'image/jpeg', 0.93);
-    }
-
-    /* ─────────────── Image load helper ─────────────── */
-
-    function loadArticleImage(article, callback) {
+    function fetchArticleImageBlob(article, callback) {
         var src = getImageUrl(article);
         if (!src) { callback(null); return; }
 
         var img = new Image();
         img.crossOrigin = 'anonymous';
-        img.onload = function () { callback(img); };
-        img.onerror = function () { callback(null); };
+
+        img.onload = function () {
+            try {
+                var c = document.createElement('canvas');
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                c.toBlob(function (b) { callback(b); }, 'image/jpeg', 0.92);
+            } catch (e) {
+                // CORS taint — fall back to fetch()
+                fetch(src)
+                    .then(function (r) { return r.blob(); })
+                    .then(function (b) { callback(b); })
+                    .catch(function () { callback(null); });
+            }
+        };
+
+        img.onerror = function () {
+            fetch(src)
+                .then(function (r) { return r.blob(); })
+                .then(function (b) { callback(b); })
+                .catch(function () { callback(null); });
+        };
+
         img.src = src;
     }
 
@@ -511,73 +292,91 @@
 
     /**
      * doShare(article)
-     * ────────────────
-     * Generates ONE combined image:
-     *   [Article photo — top]
-     *   [All text details — below]
+     * ─────────────────────────────────────────────────────
+     * Sends ONE WhatsApp message structured as:
      *
-     * Mobile  → navigator.share({ files: [combinedImg] }) → ONE WhatsApp message
-     * Desktop → downloads combined image + opens WA with caption text
+     *   [Article Photo — top]          ← actual news image
+     *   [Caption text  — below]        ← all links, TAPPABLE in WhatsApp
      *
-     * Caption text is always copied to clipboard (clickable links).
+     * Strategy:
+     *  1. Fetch article image as Blob.
+     *  2. Mobile with Web Share API Level 2:
+     *       navigator.share({ files:[imageFile], text:captionText })
+     *       → WhatsApp opens compose with image + caption pre-filled
+     *       → user taps Send → ONE message (photo + clickable links)
+     *  3. Desktop fallback:
+     *       • Download article image (user attaches it in WA)
+     *       • Open WhatsApp with caption pre-filled
+     *       • Caption also copied to clipboard
      */
     function doShare(article) {
         var captionText = buildCaption(article);
-        copyText(captionText);   // clipboard — for clickable links on desktop paste
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
+        var fname = 'nmg-news-' + (article.id || 'share') + '.jpg';
 
-        toast('📸 फोटो तयार होत आहे, एक क्षण...', 'info');
+        // Copy caption for convenience (desktop paste / fallback)
+        copyText(captionText);
 
-        loadArticleImage(article, function (imgEl) {
-            generateCombinedCanvas(article, imgEl, function (combinedBlob) {
-                if (!combinedBlob) {
-                    // Fallback: open WA with text only if canvas fails
-                    var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-                    window.open(waUrl, '_blank', 'noopener');
-                    toast('✅ व्हॉट्सॲप उघडत आहे... लिंक्स clipboard मध्ये कॉपी आहेत.', 'success');
-                    return;
-                }
+        fetchArticleImageBlob(article, function (imgBlob) {
 
-                var fname = 'nmg-share-' + (article.id || 'news') + '.jpg';
-                var combinedFile = new File([combinedBlob], fname, { type: 'image/jpeg' });
+            var imgFile = imgBlob
+                ? new File([imgBlob], fname, { type: 'image/jpeg' })
+                : null;
 
-                /* ── Mobile: Web Share API Level 2  (ONE image = ONE WA message) ── */
-                if (
-                    navigator.canShare &&
-                    navigator.canShare({ files: [combinedFile] }) &&
-                    navigator.share
-                ) {
-                    navigator.share({
-                        files: [combinedFile],
-                        title: article.title || 'न्यू महाराष्ट्र गर्जना'
-                        // Note: 'text' omitted intentionally — WhatsApp on Android
-                        // shows text as a SEPARATE second message when files are present.
-                        // All info is already drawn inside the image itself.
-                    }).then(function () {
-                        toast('✅ बातमी एका मेसेजमध्ये यशस्वीरित्या शेअर झाली!', 'success');
-                    }).catch(function (err) {
-                        if (err && (err.name === 'AbortError' || err.code === 20)) return;
-                        // If file share fails, try text share
-                        if (navigator.share) {
-                            navigator.share({
-                                title: article.title || 'न्यू महाराष्ट्र गर्जना',
-                                text: captionText,
-                                url: getArticleUrl(article)
-                            }).catch(function () {
-                                var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(captionText);
-                                window.open(waUrl, '_blank', 'noopener');
-                            });
-                        }
-                    });
-                    return;
-                }
+            /* ── Path A: Mobile — Web Share API Level 2 ──────────────────────
+               Passes the image file AND the caption text together.
+               WhatsApp renders this as ONE message:
+                 photo on top  +  caption (with tappable links) below.
+            ─────────────────────────────────────────────────────────────────── */
+            if (imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] }) && navigator.share) {
+                navigator.share({
+                    files: [imgFile],
+                    text: captionText          // ← becomes the photo caption in WhatsApp
+                }).then(function () {
+                    toast('✅ बातमीचा फोटो व सर्व क्लिकेबल लिंक्स एकत्र शेअर झाल्या!', 'success');
+                }).catch(function (err) {
+                    if (err && (err.name === 'AbortError' || err.code === 20)) return; // user cancelled
+                    // If image+text share fails, try text-only share via native API
+                    if (navigator.share) {
+                        navigator.share({
+                            title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                            text: captionText,
+                            url: getArticleUrl(article)
+                        }).catch(function () { window.open(waUrl, '_blank', 'noopener'); });
+                    } else {
+                        window.open(waUrl, '_blank', 'noopener');
+                    }
+                });
+                return; // ← stops here on mobile; no second action
+            }
 
-                /* ── Desktop fallback: download the combined image ── */
-                downloadBlob(combinedBlob, fname);
+            /* ── Path B: Mobile without file share support ────────────────── */
+            if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                navigator.share({
+                    title: article.title || 'न्यू महाराष्ट्र गर्जना',
+                    text: captionText,
+                    url: getArticleUrl(article)
+                }).catch(function () { window.open(waUrl, '_blank', 'noopener'); });
+                return;
+            }
+
+            /* ── Path C: Desktop fallback ─────────────────────────────────────
+               1. Download the article image.
+               2. Open WhatsApp with caption pre-filled.
+               User attaches the downloaded image inside WhatsApp and sends
+               → one manual step to combine into photo + caption message.
+            ─────────────────────────────────────────────────────────────────── */
+            if (imgBlob) {
+                downloadBlob(imgBlob, fname);
                 toast(
-                    '📥 Combined image डाउनलोड झाली! WhatsApp मध्ये attach करा — links clipboard मध्ये आहेत.',
+                    '📥 फोटो डाउनलोड झाला! WhatsApp मध्ये attach करा — सर्व links clipboard मध्ये आहेत.',
                     'info'
                 );
-            });
+                setTimeout(function () { window.open(waUrl, '_blank', 'noopener'); }, 700);
+            } else {
+                window.open(waUrl, '_blank', 'noopener');
+                toast('✅ व्हॉट्सॲप उघडत आहे — लिंक्स clipboard मध्ये कॉपी आहेत.', 'success');
+            }
         });
 
         return buildShareJSON(article);
@@ -596,8 +395,8 @@
         return doShare(article);
     };
 
-    window.sharePosterImage = window.shareDirectWhatsApp;
-    window.shareNewsImage = window.shareDirectWhatsApp;
+    window.sharePosterImage = window.shareDirectWhatsApp;  // same unified action
+    window.shareNewsImage = window.shareDirectWhatsApp;  // same unified action
 
     window.shareOnWhatsApp = function (articleOrId) {
         return window.shareDirectWhatsApp(articleOrId);
