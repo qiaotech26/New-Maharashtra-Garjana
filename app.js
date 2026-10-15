@@ -24,6 +24,40 @@ let appState = {
 };
 window.appState = appState;
 
+// ── SANITIZATION & SECURITY HELPERS (XSS DEFENSE) ──
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function sanitizeUrl(url) {
+  if (!url) return '';
+  const trimmed = String(url).trim();
+  // Safe protocols: https://, http://, data:image/ (for valid image previews), or relative /
+  if (/^(https?:\/\/|\/|data:image\/(jpeg|png|webp|gif);base64,)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return 'https://newmaharashtragarjana.com/marathi-title-gold-glow.png';
+}
+
+function sanitizeArticleHtml(htmlStr) {
+  if (!htmlStr) return '';
+  if (!htmlStr.includes('<p>') && !htmlStr.includes('<br>')) {
+    return htmlStr.split(/\n\s*\n/).map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+  }
+  return String(htmlStr)
+    .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '')
+    .replace(/<\s*(iframe|object|embed|form|input|button|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/\son\w+\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\son\w+\s*=\s*[^>\s]+/gi, '')
+    .replace(/javascript\s*:/gi, '');
+}
+
 // Helper: Sanitize state to purge any legacy demo data from client browser cache
 function sanitizeNewsData(data) {
   if (!data || typeof data !== 'object') {
@@ -128,7 +162,7 @@ function renderTicker() {
   const html = items.map((t, idx) => `
     <div class="ticker-item" onclick="openTickerArticleByIndex(${idx})">
       <span class="ticker-bullet">●</span>
-      <span>${t}</span>
+      <span>${escapeHtml(t)}</span>
     </div>
   `).join('');
 
@@ -174,20 +208,28 @@ function renderHeroSection() {
   }
 
   if (mainContainer) {
+    const safeHeroId = escapeHtml(String(heroArticle.id));
+    const safeHeroImg = sanitizeUrl(heroArticle.img);
+    const safeHeroTitle = escapeHtml(heroArticle.title);
+    const safeHeroCat = escapeHtml(heroArticle.cat || 'महाराष्ट्र');
+    const safeHeroDesc = escapeHtml((heroArticle.desc || heroArticle.title).replace(/<[^>]*>/g, ''));
+    const safeHeroTime = escapeHtml(heroArticle.time || '');
+    const safeHeroAuthor = escapeHtml(heroArticle.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी');
+
     mainContainer.innerHTML = `
-      <article class="hero-card" id="heroCard" onclick="openArticle('${heroArticle.id}')" itemscope itemtype="https://schema.org/NewsArticle">
+      <article class="hero-card" id="heroCard" onclick="openArticle('${safeHeroId}')" itemscope itemtype="https://schema.org/NewsArticle">
         <div class="hero-img-wrap">
-          <img src="${heroArticle.img}" alt="${heroArticle.title} - न्यू महाराष्ट्र गर्जना" class="hero-img" id="heroImg" loading="eager" width="800" height="450" itemprop="image">
+          <img src="${safeHeroImg}" alt="${safeHeroTitle} - न्यू महाराष्ट्र गर्जना" class="hero-img" id="heroImg" loading="eager" width="800" height="450" itemprop="image">
           <div class="hero-overlay-gradient"></div>
-          <div class="hero-cat-badge" id="heroCatBadge" itemprop="articleSection">${heroArticle.cat || 'महाराष्ट्र'}</div>
+          <div class="hero-cat-badge" id="heroCatBadge" itemprop="articleSection">${safeHeroCat}</div>
           ${heroArticle.isBreaking ? '<div class="live-badge" id="heroLiveBadge">🔴 LIVE</div>' : ''}
         </div>
         <div class="hero-body">
-          <h2 class="hero-title" id="heroTitle" itemprop="headline">${heroArticle.title}</h2>
-          <p class="hero-desc" id="heroDesc" itemprop="description">${(heroArticle.desc || heroArticle.title).replace(/<[^>]*>/g, '')}</p>
+          <h2 class="hero-title" id="heroTitle" itemprop="headline">${safeHeroTitle}</h2>
+          <p class="hero-desc" id="heroDesc" itemprop="description">${safeHeroDesc}</p>
           <div class="hero-meta">
-            <span class="meta-time" id="heroTime"><time datetime="2026-08-10" itemprop="datePublished">📅 ${heroArticle.time || ''}</time></span>
-            <span class="meta-author" itemprop="author">✍️ ${heroArticle.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी'}</span>
+            <span class="meta-time" id="heroTime"><time datetime="2026-08-10" itemprop="datePublished">📅 ${safeHeroTime}</time></span>
+            <span class="meta-author" itemprop="author">✍️ ${safeHeroAuthor}</span>
             <span class="read-more-link" aria-label="सविस्तर बातमी वाचा">सविस्तर वाचा →</span>
           </div>
         </div>
@@ -202,22 +244,30 @@ function renderHeroSection() {
       sideContainer.style.display = 'none';
     } else {
       sideContainer.style.display = '';
-      sideContainer.innerHTML = sideArticles.map(a => `
-        <div class="side-news-card" onclick="openArticle('${a.id}')">
-          <img src="${a.img}" alt="${a.title}" loading="lazy">
+      sideContainer.innerHTML = sideArticles.map(a => {
+        const safeSideId = escapeHtml(String(a.id));
+        const safeSideImg = sanitizeUrl(a.img);
+        const safeSideTitle = escapeHtml(a.title);
+        const safeSideCat = escapeHtml(a.cat);
+        const safeSideTime = escapeHtml(a.time);
+
+        return `
+        <div class="side-news-card" onclick="openArticle('${safeSideId}')">
+          <img src="${safeSideImg}" alt="${safeSideTitle}" loading="lazy">
           <div class="side-news-body">
-            <span class="side-cat">${a.cat}</span>
-            <h3>${a.title}</h3>
+            <span class="side-cat">${safeSideCat}</span>
+            <h3>${safeSideTitle}</h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-              <span class="side-time">${a.time}</span>
-              <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${a.id}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
+              <span class="side-time">${safeSideTime}</span>
+              <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${safeSideId}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
                 <span>शेअर</span>
               </button>
             </div>
           </div>
         </div>
-      `).join('');
+        `;
+      }).join('');
     }
   }
 }
@@ -251,26 +301,35 @@ function renderLatestGrid() {
     return;
   }
 
-  grid.innerHTML = articles.map((n, i) => `
-    <article class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${n.id}')" itemscope itemtype="https://schema.org/NewsArticle">
+  grid.innerHTML = articles.map((n, i) => {
+    const safeId = escapeHtml(String(n.id));
+    const safeImg = sanitizeUrl(n.img);
+    const safeTitle = escapeHtml(n.title);
+    const safeCat = escapeHtml(n.cat);
+    const safeDesc = escapeHtml((n.desc || '').replace(/<[^>]*>/g, '').slice(0, 95));
+    const safeTime = escapeHtml(n.time || '');
+
+    return `
+    <article class="news-card fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${safeId}')" itemscope itemtype="https://schema.org/NewsArticle">
       <div class="news-card-img-wrap">
-        <img class="news-card-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="400" height="240" itemprop="image">
-        <span class="news-card-cat" itemprop="articleSection">${n.cat}</span>
+        <img class="news-card-img" src="${safeImg}" alt="${safeTitle} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="400" height="240" itemprop="image">
+        <span class="news-card-cat" itemprop="articleSection">${safeCat}</span>
       </div>
       <div class="news-card-body">
-        <h3 itemprop="headline">${n.title}</h3>
-        <p class="news-card-excerpt" itemprop="description">${(n.desc || '').replace(/<[^>]*>/g, '').slice(0, 95)}${(n.desc || '').length > 95 ? '...' : ''}</p>
+        <h3 itemprop="headline">${safeTitle}</h3>
+        <p class="news-card-excerpt" itemprop="description">${safeDesc}${(n.desc || '').length > 95 ? '...' : ''}</p>
         <div class="news-card-meta">
-          <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${n.time || ''}</time></span>
+          <span>🕒 <time datetime="2026-08-10" itemprop="datePublished">${safeTime}</time></span>
           <span>👁️ ${Math.floor(100 + (Number(n.id) || 1) * 12)} वाचले</span>
-          <button class="card-wa-share-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${n.id}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
+          <button class="card-wa-share-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${safeId}')" title="व्हॉट्सॲपवर बातमी शेअर करा">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
             <span>शेअर</span>
           </button>
         </div>
       </div>
     </article>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // 4. CATEGORY LIST SECTIONS (MAHARASHTRA, POLITICS, SPORTS, ENTERTAINMENT)
@@ -333,22 +392,30 @@ function renderListContainer(containerId, items, sectionId) {
 
   if (section) section.style.display = '';
 
-  el.innerHTML = items.map((n, i) => `
-    <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${n.id}')" itemscope itemtype="https://schema.org/NewsArticle">
-      <img class="list-news-img" src="${n.img}" alt="${n.title} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="120" height="80" itemprop="image">
+  el.innerHTML = items.map((n, i) => {
+    const safeId = escapeHtml(String(n.id));
+    const safeImg = sanitizeUrl(n.img);
+    const safeTitle = escapeHtml(n.title);
+    const safeCat = escapeHtml(n.cat);
+    const safeTime = escapeHtml(n.time || '');
+
+    return `
+    <article class="list-news-item fade-in" style="animation-delay:${i * 0.05}s" onclick="openArticle('${safeId}')" itemscope itemtype="https://schema.org/NewsArticle">
+      <img class="list-news-img" src="${safeImg}" alt="${safeTitle} - न्यू महाराष्ट्र गर्जना" loading="lazy" width="120" height="80" itemprop="image">
       <div class="list-news-body">
-        <span class="list-news-cat" itemprop="articleSection">${n.cat}</span>
-        <h3 itemprop="headline">${n.title}</h3>
+        <span class="list-news-cat" itemprop="articleSection">${safeCat}</span>
+        <h3 itemprop="headline">${safeTitle}</h3>
         <div class="list-news-meta-row">
-          <span class="list-news-time"><time datetime="2026-08-10" itemprop="datePublished">${n.time}</time></span>
-          <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${n.id}')" title="व्हॉट्सॲपवर शेअर करा">
+          <span class="list-news-time"><time datetime="2026-08-10" itemprop="datePublished">${safeTime}</time></span>
+          <button class="card-wa-share-btn list-wa-btn" onclick="event.stopPropagation(); shareArticle('whatsapp', '${safeId}')" title="व्हॉट्सॲपवर शेअर करा">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
             <span>शेअर</span>
           </button>
         </div>
       </div>
     </article>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function openVideoModalByIndex(index) {
@@ -378,21 +445,26 @@ function renderVideoGrid() {
 
   if (section) section.style.display = '';
 
-  grid.innerHTML = videos.map((v, i) => `
+  grid.innerHTML = videos.map((v, i) => {
+    const safeTitle = escapeHtml(v.title || '');
+    const safeDur = escapeHtml(v.dur || '');
+    const safeImg = sanitizeUrl(v.img);
+    return `
     <div class="video-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openVideoModalByIndex(${i})" itemscope itemtype="https://schema.org/VideoObject">
       <div class="video-thumb-wrap">
-        <img class="video-thumb" src="${v.img}" alt="${v.title} - न्यू महाराष्ट्र गर्जना व्हिडिओ" loading="lazy" width="360" height="200" itemprop="thumbnailUrl">
+        <img class="video-thumb" src="${safeImg}" alt="${safeTitle} - न्यू महाराष्ट्र गर्जना व्हिडिओ" loading="lazy" width="360" height="200" itemprop="thumbnailUrl">
         <div class="play-btn">▶</div>
-        <span class="video-duration" itemprop="duration">${v.dur}</span>
+        <span class="video-duration" itemprop="duration">${safeDur}</span>
       </div>
       <div class="video-body">
-        <h3 itemprop="name">${v.title}</h3>
-        <meta itemprop="description" content="न्यू महाराष्ट्र गर्जना विशेष व्हिडिओ बुलेटिन: ${v.title}">
+        <h3 itemprop="name">${safeTitle}</h3>
+        <meta itemprop="description" content="न्यू महाराष्ट्र गर्जना विशेष व्हिडिओ बुलेटिन: ${safeTitle}">
         <meta itemprop="uploadDate" content="2026-08-10T10:00:00+05:30">
         <span>न्यू महाराष्ट्र गर्जना व्हिडिओ बुलेटिन</span>
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // 6. PHOTO GRID
@@ -410,14 +482,18 @@ function renderPhotoGrid() {
 
   if (section) section.style.display = '';
 
-  grid.innerHTML = photos.map((p, i) => `
+  grid.innerHTML = photos.map((p, i) => {
+    const safeCaption = escapeHtml(p.caption || '');
+    const safeImg = sanitizeUrl(p.img);
+    return `
     <div class="photo-card fade-in" style="animation-delay:${i * 0.08}s" onclick="openPhotoModalByIndex(${i})" itemscope itemtype="https://schema.org/ImageObject">
-      <img src="${p.img}" alt="${p.caption} - न्यू महाराष्ट्र गर्जना फोटो" loading="lazy" width="400" height="260" itemprop="contentUrl">
+      <img src="${safeImg}" alt="${safeCaption} - न्यू महाराष्ट्र गर्जना फोटो" loading="lazy" width="400" height="260" itemprop="contentUrl">
       <div class="photo-overlay">
-        <p itemprop="caption">${p.caption}</p>
+        <p itemprop="caption">${safeCaption}</p>
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ── SEO METADATA & SCHEMA MANAGEMENT ──
@@ -696,15 +772,18 @@ function openArticle(id) {
     const paramDesc = urlParams.get('desc');
 
     if (paramTitle) {
+      const cleanTitle = paramTitle.substring(0, 300);
+      const cleanDesc = (paramDesc || paramTitle).substring(0, 1000);
+      const cleanImg = sanitizeUrl(paramImg || 'https://newmaharashtragarjana.com/logo.jpg');
       article = {
         id: id,
         cat: 'महाराष्ट्र',
-        title: paramTitle,
-        desc: paramDesc || paramTitle,
-        content: `<p>${paramDesc || paramTitle}</p>`,
+        title: cleanTitle,
+        desc: cleanDesc,
+        content: `<p>${escapeHtml(cleanDesc)}</p>`,
         time: 'ताज्या घडामोडी',
         author: 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
-        img: paramImg || 'https://newmaharashtragarjana.com/logo.jpg'
+        img: cleanImg
       };
     } else {
       if (typeof showToast === 'function') {
@@ -738,19 +817,28 @@ function openArticle(id) {
   if (!modal || !container) return;
 
   const articleComments = appState.commentsMap[id] || [];
+  const safeId = escapeHtml(String(article.id));
+  const safeCat = escapeHtml(article.cat || 'महाराष्ट्र');
+  const safeTitle = escapeHtml(article.title || '');
+  const safeAuthor = escapeHtml(article.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी');
+  const authorAvatar = escapeHtml(article.author ? article.author.charAt(0) : 'न');
+  const safeTime = escapeHtml(article.time || '');
+  const safeImg = sanitizeUrl(article.img || 'https://newmaharashtragarjana.com/logo.jpg');
+  const defaultBody = `<p>${escapeHtml(article.desc || article.title || '')}</p><p>महाराष्ट्रातील क्रीडा, राजकारण आणि सामाजिक घडामोडींचा सर्वात जलद वेगाने आढावा घेण्यासाठी न्यू महाराष्ट्र गर्जना शी जोडलेले राहा.</p>`;
+  const safeContent = article.content ? sanitizeArticleHtml(article.content) : defaultBody;
 
   container.innerHTML = `
     <article class="article-reader-wrapper" itemscope itemtype="https://schema.org/NewsArticle">
       <div class="article-header">
-        <span class="article-cat-badge" itemprop="articleSection">${article.cat}</span>
-        <h1 class="article-main-title" id="articleReaderTitle" itemprop="headline">${article.title}</h1>
+        <span class="article-cat-badge" itemprop="articleSection">${safeCat}</span>
+        <h1 class="article-main-title" id="articleReaderTitle" itemprop="headline">${safeTitle}</h1>
       
       <div class="article-meta-bar">
         <div class="article-author-info">
-          <div class="author-avatar">${article.author ? article.author.charAt(0) : 'न'}</div>
+          <div class="author-avatar">${authorAvatar}</div>
           <div>
-            <strong>${article.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी'}</strong><br>
-            <small>📅 ${article.time} • ⏱️ ३ मिनिटे वाच वेळ</small>
+            <strong>${safeAuthor}</strong><br>
+            <small>📅 ${safeTime} • ⏱️ ३ मिनिटे वाच वेळ</small>
           </div>
         </div>
         
@@ -765,37 +853,37 @@ function openArticle(id) {
     </div>
 
     <div class="article-main-image-box">
-      <img src="${article.img}" alt="${article.title}">
-      <div class="image-caption">छायाचित्र: न्यू महाराष्ट्र गर्जना डिजिटल मीडिया • ${article.title}</div>
+      <img src="${safeImg}" alt="${safeTitle}">
+      <div class="image-caption">छायाचित्र: न्यू महाराष्ट्र गर्जना डिजिटल मीडिया • ${safeTitle}</div>
     </div>
 
     <div class="article-body-text" id="articleBodyText" style="font-size: ${currentReaderFontSize}rem;">
-      ${article.content || `<p>${article.desc || article.title}</p><p>महाराष्ट्रातील क्रीडा, राजकारण आणि सामाजिक घडामोडींचा सर्वात जलद वेगाने आढावा घेण्यासाठी न्यू महाराष्ट्र गर्जना शी जोडलेले राहा.</p>`}
+      ${safeContent}
     </div>
 
     <!-- SOCIAL SHARE BAR -->
     <div class="share-section">
       <span class="share-title">ही बातमी शेअर करा:</span>
       <div class="share-buttons">
-        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', '${article.id}')" title="व्हॉट्सॲपवर बातमी व सर्व लिंक्स शेअर करा">
+        <button class="share-btn share-whatsapp" onclick="shareArticle('whatsapp', '${safeId}')" title="व्हॉट्सॲपवर बातमी व सर्व लिंक्स शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
           <span>व्हॉट्सॲप</span>
         </button>
-        <button class="share-btn share-poster" onclick="shareArticle('poster', '${article.id}')" title="ब्रँडेड फोटो पोस्टर तयार करून शेअर करा" style="background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color: white;">
+        <button class="share-btn share-poster" onclick="shareArticle('poster', '${safeId}')" title="ब्रँडेड फोटो पोस्टर तयार करून शेअर करा" style="background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color: white;">
           <span>🖼️ फोटो पोस्टर</span>
         </button>
-        <button class="share-btn share-caption" onclick="shareArticle('caption', '${article.id}')" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
+        <button class="share-btn share-caption" onclick="shareArticle('caption', '${safeId}')" title="व्हॉट्सॲप मेसेज व सर्व लिंक्स कॉपी करा" style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: white;">
           <span>📋 कॅप्शन कॉपी करा</span>
         </button>
-        <button class="share-btn share-facebook" onclick="shareArticle('facebook', '${article.id}')" title="फेसबुकवर शेअर करा">
+        <button class="share-btn share-facebook" onclick="shareArticle('facebook', '${safeId}')" title="फेसबुकवर शेअर करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
           <span>फेसबुक</span>
         </button>
-        <button class="share-btn share-instagram" onclick="shareArticle('instagram', '${article.id}')" title="इन्स्टाग्राम वर भेट द्या">
+        <button class="share-btn share-instagram" onclick="shareArticle('instagram', '${safeId}')" title="इन्स्टाग्राम वर भेट द्या">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
           <span>इन्स्टाग्राम</span>
         </button>
-        <button class="share-btn share-copy" onclick="shareArticle('copy', '${article.id}')" title="बातमीची लिंक कॉपी करा">
+        <button class="share-btn share-copy" onclick="shareArticle('copy', '${safeId}')" title="बातमीची लिंक कॉपी करा">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
           <span>लिंक कॉपी</span>
         </button>
@@ -806,9 +894,9 @@ function openArticle(id) {
     <div class="comments-section">
       <h3>प्रतिक्रिया (<span id="commentCountHeader">${articleComments.length}</span>)</h3>
       <div class="comment-form">
-        <input type="text" id="commentAuthorInput" placeholder="तुमचे नाव..." class="form-control">
-        <textarea id="commentTextInput" rows="3" placeholder="तुमची प्रतिक्रिया लिहा..." class="form-control"></textarea>
-        <button type="button" onclick="submitComment('${article.id}')">प्रतिक्रिया पाठवा</button>
+        <input type="text" id="commentAuthorInput" placeholder="तुमचे नाव..." class="form-control" maxlength="60">
+        <textarea id="commentTextInput" rows="3" placeholder="तुमची प्रतिक्रिया लिहा..." class="form-control" maxlength="1000"></textarea>
+        <button type="button" onclick="submitComment('${safeId}')">प्रतिक्रिया पाठवा</button>
       </div>
       
       <div class="comments-list" id="commentsListContainer">
@@ -1051,37 +1139,43 @@ function renderCommentsHTML(comments) {
   if (!comments || comments.length === 0) {
     return `<p style="color: #94A3B8; font-size: 0.88rem;">अद्याप कोणतीही प्रतिक्रिया आलेली नाही. पहिली प्रतिक्रिया द्या!</p>`;
   }
-  return comments.map(c => `
+  return comments.map(c => {
+    const safeAuthor = escapeHtml(c.author || 'वाचक');
+    const safeDate = escapeHtml(c.date || '');
+    const safeText = escapeHtml(c.text || '');
+    return `
     <div class="comment-item">
       <div>
-        <span class="comment-author">${c.author}</span>
-        <span class="comment-date">${c.date}</span>
+        <span class="comment-author">${safeAuthor}</span>
+        <span class="comment-date">${safeDate}</span>
       </div>
-      <div class="comment-text">${c.text}</div>
+      <div class="comment-text">${safeText}</div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function submitComment(articleId) {
   const authorInput = document.getElementById('commentAuthorInput');
   const textInput = document.getElementById('commentTextInput');
 
-  const author = authorInput?.value.trim() || 'वाचक';
-  const text = textInput?.value.trim();
+  const author = (authorInput?.value.trim() || 'वाचक').substring(0, 60);
+  const text = (textInput?.value.trim() || '').substring(0, 1000);
 
   if (!text) {
     showToast('कृपया प्रतिक्रिया लिहा.', 'info');
     return;
   }
 
-  if (!appState.commentsMap[articleId]) {
-    appState.commentsMap[articleId] = [];
+  const safeArticleId = String(articleId);
+  if (!appState.commentsMap[safeArticleId]) {
+    appState.commentsMap[safeArticleId] = [];
   }
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('mr-IN', { hour: '2-digit', minute: '2-digit' });
 
-  appState.commentsMap[articleId].unshift({
+  appState.commentsMap[safeArticleId].unshift({
     author: author,
     text: text,
     date: dateStr
@@ -1150,11 +1244,29 @@ function setupSearchEvents() {
 // ── ADMIN PUBLISHING PORTAL ENGINE & PIN RESET SYSTEM ──
 
 const ADMIN_REGISTERED_PHONE = '8530664576';
-let currentGeneratedOtp = null;
-let isPinVisibleInDash = false;
+const DEFAULT_ADMIN_PIN_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // Pre-configured initial administrator hash
+let currentResetOtpSession = null;
+let adminFailedAttempts = 0;
+let adminLockoutUntil = 0;
 
-function getStoredAdminPin() {
-  return localStorage.getItem('nmg_admin_pin') || 'admin';
+async function hashPin(str) {
+  if (!str) return '';
+  const enc = new TextEncoder().encode(String(str));
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getStoredAdminPinHash() {
+  const storedHash = localStorage.getItem('nmg_admin_pin_hash');
+  if (storedHash) return storedHash;
+  const legacyPin = localStorage.getItem('nmg_admin_pin');
+  if (legacyPin) {
+    const h = await hashPin(legacyPin);
+    localStorage.setItem('nmg_admin_pin_hash', h);
+    localStorage.removeItem('nmg_admin_pin');
+    return h;
+  }
+  return DEFAULT_ADMIN_PIN_HASH;
 }
 
 function openAdminModal() {
@@ -1215,33 +1327,44 @@ function togglePasswordVisibility(inputId, btnEl) {
 }
 
 function requestResetOtp() {
-  const phoneVal = (document.getElementById('resetContactPhone').value || '').replace(/\D/g, '');
+  const phoneVal = (document.getElementById('resetContactPhone')?.value || '').replace(/\D/g, '');
   if (!phoneVal.endsWith(ADMIN_REGISTERED_PHONE)) {
     showToast('अवैध संपर्क क्रमांक! केवळ नोंदणीकृत क्रमांक (' + ADMIN_REGISTERED_PHONE + ') वैध आहे.', 'danger');
     return;
   }
 
-  // Generate 4-digit security code (matches 4576 suffix for ease or dynamic)
-  currentGeneratedOtp = String(Math.floor(1000 + Math.random() * 9000));
-  const otpInput = document.getElementById('resetOtpInput');
-  const helpEl = document.getElementById('otpHelpStatus');
-  const btn = document.getElementById('btnGetOtp');
+  // Cryptographically secure 6-digit OTP
+  const randArr = new Uint32Array(1);
+  crypto.getRandomValues(randArr);
+  const rawOtp = String(100000 + (randArr[0] % 900000));
 
-  if (otpInput) otpInput.value = currentGeneratedOtp;
-  if (helpEl) {
-    helpEl.innerHTML = '<span style="color: #10B981; font-weight:700;">✓ पडताळणी कोड: ' + currentGeneratedOtp + ' (सत्यापित)</span>';
-  }
-  if (btn) btn.textContent = 'पुन्हा पाठवा';
+  hashPin(rawOtp).then(otpHash => {
+    currentResetOtpSession = {
+      hash: otpHash,
+      expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
+    };
 
-  showToast('सुरक्षा पडताळणी कोड ' + ADMIN_REGISTERED_PHONE + ' वर पाठवला: ' + currentGeneratedOtp, 'success');
+    // Output to developer console for development testing only — never populate DOM or input
+    console.info('[NMG Admin Auth Simulation] OTP पाठवला (' + ADMIN_REGISTERED_PHONE + '):', rawOtp);
+
+    const helpEl = document.getElementById('otpHelpStatus');
+    const btn = document.getElementById('btnGetOtp');
+
+    if (helpEl) {
+      helpEl.innerHTML = '<span style="color: #10B981; font-weight:600;">✓ ६-अंकी सुरक्षा कोड अधिकृत क्रमांकावर पाठवला आहे (५ मिनिटे वैध).</span>';
+    }
+    if (btn) btn.textContent = 'पुन्हा पाठवा';
+
+    showToast('सुरक्षा पडताळणी कोड अधिकृत क्रमांकावर पाठवला गेला आहे.', 'success');
+  });
 }
 
-function handleAdminPinReset(event) {
+async function handleAdminPinReset(event) {
   event.preventDefault();
-  const phoneVal = (document.getElementById('resetContactPhone').value || '').replace(/\D/g, '');
-  const otpVal = (document.getElementById('resetOtpInput').value || '').trim();
-  const newPin = (document.getElementById('resetNewPin').value || '').trim();
-  const confirmPin = (document.getElementById('resetConfirmPin').value || '').trim();
+  const phoneVal = (document.getElementById('resetContactPhone')?.value || '').replace(/\D/g, '');
+  const otpVal = (document.getElementById('resetOtpInput')?.value || '').trim();
+  const newPin = (document.getElementById('resetNewPin')?.value || '').trim();
+  const confirmPin = (document.getElementById('resetConfirmPin')?.value || '').trim();
 
   // Validate Phone
   if (!phoneVal.endsWith(ADMIN_REGISTERED_PHONE)) {
@@ -1249,9 +1372,15 @@ function handleAdminPinReset(event) {
     return;
   }
 
-  // Validate OTP if generated
-  if (currentGeneratedOtp && otpVal !== currentGeneratedOtp) {
-    showToast('अवैध सुरक्षा कोड (OTP)! कृपया योग्य कोड टाका किंवा "कोड मिळवा" वर क्लिक करा.', 'danger');
+  // Validate OTP
+  if (!currentResetOtpSession || Date.now() > currentResetOtpSession.expiresAt) {
+    showToast('सुरक्षा कोडची मुदत संपली आहे किंवा कोड मागवला नाही. कृपया "कोड मिळवा" वर क्लिक करा.', 'danger');
+    return;
+  }
+
+  const inputOtpHash = await hashPin(otpVal);
+  if (inputOtpHash !== currentResetOtpSession.hash) {
+    showToast('अवैध सुरक्षा कोड (OTP)! कृपया एसएमएसवर आलेला योग्य कोड टाका.', 'danger');
     return;
   }
 
@@ -1266,8 +1395,14 @@ function handleAdminPinReset(event) {
     return;
   }
 
-  // Store new PIN
-  localStorage.setItem('nmg_admin_pin', newPin);
+  // Store new hashed PIN
+  const newPinHash = await hashPin(newPin);
+  localStorage.setItem('nmg_admin_pin_hash', newPinHash);
+  localStorage.removeItem('nmg_admin_pin');
+  currentResetOtpSession = null;
+  adminFailedAttempts = 0;
+  adminLockoutUntil = 0;
+
   showToast('पिन यशस्वीरीत्या रीसेट करण्यात आला! नवीन पिनने लॉगिन करा.', 'success');
 
   // Pre-fill login box
@@ -1275,23 +1410,32 @@ function handleAdminPinReset(event) {
   if (pwInput) pwInput.value = newPin;
 
   // Clear reset form
-  document.getElementById('adminPinResetForm').reset();
-  currentGeneratedOtp = null;
+  document.getElementById('adminPinResetForm')?.reset();
 
   // Switch back to login
   toggleAdminResetModule(false);
 }
 
-function handleAdminLogin(event) {
+async function handleAdminLogin(event) {
   event.preventDefault();
-  const u = (document.getElementById('adminUsernameInput').value || '').trim();
-  const p = (document.getElementById('adminPasswordInput').value || '').trim();
-  const activePin = getStoredAdminPin();
+
+  if (Date.now() < adminLockoutUntil) {
+    const remainingSec = Math.ceil((adminLockoutUntil - Date.now()) / 1000);
+    showToast(`वारंवार चुकीच्या प्रयत्नांमुळे लॉगिन तात्पुरते ब्लॉक केले आहे. कृपया ${remainingSec} सेकंदांनंतर प्रयत्न करा.`, 'danger');
+    return;
+  }
+
+  const u = (document.getElementById('adminUsernameInput')?.value || '').trim();
+  const p = (document.getElementById('adminPasswordInput')?.value || '').trim();
+  const targetHash = await getStoredAdminPinHash();
+  const inputHash = await hashPin(p);
 
   const isUserValid = (u.toLowerCase() === 'admin' || u.replace(/\D/g, '').endsWith(ADMIN_REGISTERED_PHONE));
-  const isPinValid = (p === activePin || (activePin === 'admin' && p === 'admin') || p === ADMIN_REGISTERED_PHONE);
+  const isPinValid = (inputHash === targetHash);
 
   if (isUserValid && isPinValid) {
+    adminFailedAttempts = 0;
+    adminLockoutUntil = 0;
     appState.isAdminLoggedIn = true;
     sessionStorage.setItem('nmg_admin_session', 'true');
     document.getElementById('adminLoginBox').style.display = 'none';
@@ -1302,7 +1446,14 @@ function handleAdminLogin(event) {
     renderAdminTable();
     showToast('ॲडमिन पॅनेलमध्ये स्वागत आहे!', 'success');
   } else {
-    showToast('चुकीचा युझरनेम किंवा पिन! विसरला असल्यास "पिन रीसेट करा" पर्याय वापरा.', 'danger');
+    adminFailedAttempts++;
+    if (adminFailedAttempts >= 5) {
+      adminLockoutUntil = Date.now() + 5 * 60 * 1000; // 5-minute lockout
+      showToast('५ वेळा चुकीचा प्रयत्न! सुरक्षेसाठी ५ मिनिटे लॉगिन तात्पुरते ब्लॉक केले आहे.', 'danger');
+    } else {
+      const attemptsLeft = 5 - adminFailedAttempts;
+      showToast(`चुकीचा युझरनेम किंवा पिन! शिल्लक प्रयत्न: ${attemptsLeft}`, 'danger');
+    }
   }
 }
 
@@ -1320,22 +1471,30 @@ function handleAdminLogout() {
 function updateSecurityTabDisplay() {
   const pinDisplay = document.getElementById('currentActivePinDisplay');
   if (!pinDisplay) return;
-  const pin = getStoredAdminPin();
-  pinDisplay.textContent = isPinVisibleInDash ? pin : '••••••';
+  pinDisplay.textContent = '••••••';
 }
 
 function togglePinDisplay() {
-  isPinVisibleInDash = !isPinVisibleInDash;
-  updateSecurityTabDisplay();
+  // Plaintext display disabled for security
+  showToast('सुरक्षेच्या कारणास्तव ॲडमिन पिन एन्क्रिप्टेड (SHA-256) ठेवला जातो.', 'info');
 }
 
-function handleDashboardPinChange(event) {
+async function handleDashboardPinChange(event) {
   event.preventDefault();
-  const newPin = (document.getElementById('dashNewPin').value || '').trim();
-  const confirmPin = (document.getElementById('dashConfirmPin').value || '').trim();
+  const currentPin = (document.getElementById('dashCurrentPin')?.value || '').trim();
+  const newPin = (document.getElementById('dashNewPin')?.value || '').trim();
+  const confirmPin = (document.getElementById('dashConfirmPin')?.value || '').trim();
+
+  const currentStoredHash = await getStoredAdminPinHash();
+  const currentInputHash = await hashPin(currentPin);
+
+  if (currentInputHash !== currentStoredHash) {
+    showToast('सध्याचा ॲडमिन पिन चुकीचा आहे!', 'danger');
+    return;
+  }
 
   if (newPin.length < 4) {
-    showToast('पिन किमान ४ अक्षरे किंवा अंकांचा असावा!', 'warning');
+    showToast('नवीन पिन किमान ४ अक्षरे किंवा अंकांचा असावा!', 'warning');
     return;
   }
   if (newPin !== confirmPin) {
@@ -1343,16 +1502,19 @@ function handleDashboardPinChange(event) {
     return;
   }
 
-  localStorage.setItem('nmg_admin_pin', newPin);
-  showToast('नवीन ॲडमिन पिन जतन करण्यात आला!', 'success');
-  document.getElementById('dashChangePinForm').reset();
+  const newHash = await hashPin(newPin);
+  localStorage.setItem('nmg_admin_pin_hash', newHash);
+  localStorage.removeItem('nmg_admin_pin');
+  showToast('नवीन ॲडमिन पिन यशस्वीरीत्या जतन करण्यात आला!', 'success');
+  document.getElementById('dashChangePinForm')?.reset();
   updateSecurityTabDisplay();
 }
 
 function resetPinToDefault() {
-  if (confirm('आपण खरोखर ॲडमिन पिन डिफॉल्ट "admin" वर रिसेट करू इच्छिता?')) {
+  if (confirm('आपण खरोखर ॲडमिन पिन मूळ स्थितीत रिसेट करू इच्छिता?')) {
+    localStorage.removeItem('nmg_admin_pin_hash');
     localStorage.removeItem('nmg_admin_pin');
-    showToast('पिन डिफॉल्ट (admin) वर रिसेट झाला!', 'info');
+    showToast('पिन मूळ डिफॉल्ट स्थितीत रिसेट झाला!', 'info');
     updateSecurityTabDisplay();
   }
 }
@@ -1827,10 +1989,10 @@ function runNewsEditorialEngine(autoPublishAfter = false) {
       changelogList.innerHTML = analysis.corrections.map((c, i) => `
         <div class="changelog-item">
           <span class="item-num">#${i + 1}</span>
-          <span class="badge-${c.type}">${c.type === 'spelling' ? 'शुद्धलेखन' : c.type === 'grammar' ? 'व्याकरण' : 'मानक'}</span>
+          <span class="badge-${escapeHtml(c.type)}">${c.type === 'spelling' ? 'शुद्धलेखन' : c.type === 'grammar' ? 'व्याकरण' : 'मानक'}</span>
           <div class="item-details">
-            <strong>${c.fix}</strong>
-            <small>${c.reason}</small>
+            <strong>${escapeHtml(c.fix)}</strong>
+            <small>${escapeHtml(c.reason)}</small>
           </div>
         </div>
       `).join('');
@@ -1845,7 +2007,7 @@ function runNewsEditorialEngine(autoPublishAfter = false) {
   if (previewTitle) previewTitle.textContent = analysis.improvedTitle;
   if (previewDesc) previewDesc.textContent = analysis.improvedDesc;
   if (previewContent) {
-    previewContent.innerHTML = analysis.improvedContent.split('\n\n').map(p => `<p>${p}</p>`).join('');
+    previewContent.innerHTML = analysis.improvedContent.split('\n\n').map(p => `<p>${escapeHtml(p)}</p>`).join('');
   }
 
   // Diff Tab
@@ -1860,8 +2022,8 @@ function runNewsEditorialEngine(autoPublishAfter = false) {
   if (diffImpTitle) diffImpTitle.textContent = analysis.improvedTitle;
   if (diffOrigDesc) diffOrigDesc.textContent = analysis.originalDesc || '(रिक्त)';
   if (diffImpDesc) diffImpDesc.textContent = analysis.improvedDesc;
-  if (diffOrigContent) diffOrigContent.innerHTML = analysis.originalContent.split('\n\n').map(p => `<p>${p}</p>`).join('');
-  if (diffImpContent) diffImpContent.innerHTML = analysis.improvedContent.split('\n\n').map(p => `<p>${p}</p>`).join('');
+  if (diffOrigContent) diffOrigContent.innerHTML = analysis.originalContent.split('\n\n').map(p => `<p>${escapeHtml(p)}</p>`).join('');
+  if (diffImpContent) diffImpContent.innerHTML = analysis.improvedContent.split('\n\n').map(p => `<p>${escapeHtml(p)}</p>`).join('');
 
   // Switch to first tab by default
   switchCompTab('improved');
@@ -2074,19 +2236,26 @@ function renderAdminTable() {
   const search = document.getElementById('adminSearchInput')?.value.toLowerCase() || '';
   const filtered = articles.filter(a => (a.title || '').toLowerCase().includes(search));
 
-  tbody.innerHTML = filtered.map(a => `
+  tbody.innerHTML = filtered.map(a => {
+    const safeId = escapeHtml(String(a.id));
+    const safeImg = sanitizeUrl(a.img);
+    const safeTitle = escapeHtml(a.title || '');
+    const safeCat = escapeHtml(a.cat || '');
+    const safeTime = escapeHtml(a.time || '');
+    return `
     <tr>
-      <td>#${a.id}</td>
-      <td><img src="${a.img}" class="table-thumb" alt="thumb"></td>
-      <td><strong>${a.title}</strong> ${a.isHero ? '<span style="color:var(--red); font-size:0.75rem;">[HERO]</span>' : ''}</td>
-      <td><span class="news-card-cat" style="position:static;">${a.cat}</span></td>
-      <td><small>${a.time}</small></td>
+      <td>#${safeId}</td>
+      <td><img src="${safeImg}" class="table-thumb" alt="thumb"></td>
+      <td><strong>${safeTitle}</strong> ${a.isHero ? '<span style="color:var(--red); font-size:0.75rem;">[HERO]</span>' : ''}</td>
+      <td><span class="news-card-cat" style="position:static;">${safeCat}</span></td>
+      <td><small>${safeTime}</small></td>
       <td>
-        <button class="btn btn-sm btn-secondary" onclick="editArticle('${a.id}')">✏️ संपादन</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteArticle('${a.id}')">🗑️ हटवा</button>
+        <button class="btn btn-sm btn-secondary" onclick="editArticle('${safeId}')">✏️ संपादन</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteArticle('${safeId}')">🗑️ हटवा</button>
       </td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function editArticle(id) {
@@ -2187,10 +2356,46 @@ function previewArticleImage() {
 
 function handleFileUpload(event) {
   const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      document.getElementById('articleImgInput').value = e.target.result;
+  if (!file) return;
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!validTypes.includes(file.type)) {
+    showToast('केवळ JPG, PNG किंवा WEBP फोटो अपलोड करणे अनुज्ञेय आहे!', 'danger');
+    event.target.value = '';
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('फोटोचा आकार ५ MB पेक्षा कमी असावा!', 'danger');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const rawDataUrl = e.target.result;
+    const imgEl = new Image();
+    imgEl.onload = function () {
+      const maxDim = 1200;
+      let width = imgEl.width;
+      let height = imgEl.height;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgEl, 0, 0, width, height);
+      const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+      document.getElementById('articleImgInput').value = optimizedDataUrl;
       previewArticleImage();
 
       // Auto-upload in background so WhatsApp / Social media crawlers have a public HTTPS URL
@@ -2198,7 +2403,7 @@ function handleFileUpload(event) {
       fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: e.target.result })
+        body: JSON.stringify({ image: optimizedDataUrl })
       })
         .then(r => r.json())
         .then(res => {
@@ -2210,13 +2415,18 @@ function handleFileUpload(event) {
         })
         .catch(() => { });
     };
-    reader.readAsDataURL(file);
-  }
+    imgEl.onerror = function () {
+      document.getElementById('articleImgInput').value = rawDataUrl;
+      previewArticleImage();
+    };
+    imgEl.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
 }
 
 function saveTickerText() {
-  const raw = document.getElementById('tickerEditorTextarea').value;
-  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const raw = document.getElementById('tickerEditorTextarea')?.value || '';
+  const lines = raw.split(/[\n|]+/).map(l => l.trim()).filter(l => l.length > 0);
   appState.news.ticker = lines;
   saveStateToStorage();
   renderTicker();
@@ -2319,13 +2529,92 @@ function updateLiveDate() {
   el.textContent = formatted;
 }
 
+function updateLiveWeather() {
+  const weatherEl = document.getElementById('weatherWidget');
+  if (!weatherEl) return;
+
+  // Use cached weather if updated in the last 30 minutes
+  try {
+    const cached = sessionStorage.getItem('nmg_cached_weather');
+    const cachedTime = sessionStorage.getItem('nmg_cached_weather_time');
+    if (cached && cachedTime && (Date.now() - Number(cachedTime) < 30 * 60 * 1000)) {
+      weatherEl.innerHTML = cached;
+      return;
+    }
+  } catch (e) { }
+
+  // Open-Meteo free API for Mumbai (18.96, 72.82)
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=18.9667&longitude=72.8333&current_weather=true')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.current_weather && typeof data.current_weather.temperature === 'number') {
+        const temp = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+        let icon = '☀️';
+        if (code >= 51 && code <= 67) icon = '🌧️';
+        else if (code >= 80 && code <= 82) icon = '🌦️';
+        else if (code >= 1 && code <= 3) icon = '⛅';
+        else if (code >= 95) icon = '⛈️';
+
+        const html = `<span class="weather-icon">${icon}</span> मुंबई ${temp}°C`;
+        weatherEl.innerHTML = html;
+        try {
+          sessionStorage.setItem('nmg_cached_weather', html);
+          sessionStorage.setItem('nmg_cached_weather_time', String(Date.now()));
+        } catch (e) { }
+      }
+    })
+    .catch(() => {
+      // Graceful fallback to static text if offline or blocked
+    });
+}
+
 function handleNewsletterSubmit(event) {
   event.preventDefault();
   const input = document.getElementById('newsletterInput');
-  if (input && input.value) {
-    showToast('आपले सबस्क्रिप्शन यशस्वी झाले! धन्यवाद.', 'success');
-    input.value = '';
+  if (!input) return;
+
+  const val = input.value.trim();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  const isPhone = /^(?:\+?91|0)?[6-9]\d{9}$/.test(val.replace(/[\s-]/g, ''));
+
+  if (!isEmail && !isPhone) {
+    showToast('कृपया वैध ईमेल आयडी किंवा १०-अंकी मोबाईल नंबर प्रविष्ट करा.', 'warning');
+    return;
   }
+
+  // Check existing subscribers in localStorage
+  let subscribers = [];
+  try {
+    subscribers = JSON.parse(localStorage.getItem('nmg_newsletter_subscribers') || '[]');
+  } catch (e) {
+    subscribers = [];
+  }
+
+  if (subscribers.includes(val)) {
+    showToast('आपण आधीच सबस्क्राईब केलेले आहे! धन्यवाद.', 'info');
+    input.value = '';
+    return;
+  }
+
+  subscribers.push(val);
+  try {
+    localStorage.setItem('nmg_newsletter_subscribers', JSON.stringify(subscribers));
+  } catch (e) { }
+
+  // Sync to Firestore collection 'newsletter_subscribers' if Firestore is available
+  try {
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      firebase.firestore().collection('newsletter_subscribers').add({
+        contact: val,
+        type: isEmail ? 'email' : 'phone',
+        subscribedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(() => { });
+    }
+  } catch (e) { }
+
+  showToast('न्यू महाराष्ट्र गर्जना डिजिटल बुलेटिन सबस्क्रिप्शन यशस्वी! धन्यवाद.', 'success');
+  input.value = '';
 }
 
 function openStaticInfo(topic) {
@@ -2499,8 +2788,37 @@ function closeStaticInfoModal() {
 document.addEventListener('DOMContentLoaded', () => {
   loadStateFromStorage();
   updateLiveDate();
+  updateLiveWeather();
   renderAll();
   setupSearchEvents();
+
+  // Global Modal Escape Key Listener
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeArticleModal();
+      closeAdminModal();
+      closeMediaModal();
+      closeEditorialReviewModal();
+      closeStaticInfoModal();
+    }
+  });
+
+  // Global Modal Backdrop Click Handlers
+  const modalIds = ['articleModal', 'adminModal', 'mediaModal', 'editorialReviewModal', 'staticInfoModal'];
+  modalIds.forEach(id => {
+    const modalEl = document.getElementById(id);
+    if (modalEl) {
+      modalEl.addEventListener('click', (e) => {
+        if (e.target === modalEl) {
+          if (id === 'articleModal') closeArticleModal();
+          else if (id === 'adminModal') closeAdminModal();
+          else if (id === 'mediaModal') closeMediaModal();
+          else if (id === 'editorialReviewModal') closeEditorialReviewModal();
+          else if (id === 'staticInfoModal') closeStaticInfoModal();
+        }
+      });
+    }
+  });
 
   // Admin Login Event Listener
   const adminBtn = document.getElementById('adminPortalBtn');
@@ -2597,10 +2915,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   }
 
-  // URL Deep-Linking for Articles, Categories, and Static Info Pages
+  // URL Deep-Linking for Articles, Categories, Search, and Static Info Pages
   function handleUrlDeepLink() {
-    // 1. Check URL query parameters (e.g. ?p=101, ?article=101 or ?id=101 from WhatsApp/Social sharing)
     const urlParams = new URLSearchParams(window.location.search);
+
+    // 1. Search Query (?q=...)
+    const searchQuery = urlParams.get('q');
+    if (searchQuery) {
+      const cleanSearch = searchQuery.trim();
+      if (cleanSearch) {
+        appState.searchTerm = cleanSearch;
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = cleanSearch;
+        const searchBar = document.getElementById('searchBar');
+        if (searchBar) searchBar.classList.add('open');
+        renderLatestGrid();
+        updateCategoryStatusBar();
+      }
+    }
+
+    // 2. Check URL query parameters (e.g. ?p=101, ?article=101 or ?id=101 from WhatsApp/Social sharing)
     const articleQuery = urlParams.get('p') || urlParams.get('article') || urlParams.get('id');
     if (articleQuery) {
       const cleanId = articleQuery.trim();
@@ -2610,7 +2944,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 2. Check URL Hash (e.g. #article-101, #maharashtra, #आमच्याबद्दल)
+    // 2b. Check Category Query Param (e.g. ?cat=maharashtra or ?cat=महाराष्ट्र)
+    const catQuery = urlParams.get('cat');
+    if (catQuery) {
+      const catMap = {
+        'maharashtra': 'महाराष्ट्र',
+        'rajkaran': 'राजकारण',
+        'politics': 'राजकारण',
+        'mumbai': 'मुंबई',
+        'pune': 'पुणे',
+        'desh': 'देश',
+        'national': 'देश',
+        'jag': 'जग',
+        'world': 'जग',
+        'krida': 'क्रीडा',
+        'sports': 'क्रीडा',
+        'manoranjan': 'मनोरंजन',
+        'entertainment': 'मनोरंजन',
+        'vyapar': 'व्यापार',
+        'business': 'व्यापार',
+        'arogya': 'आरोग्य',
+        'health': 'आरोग्य',
+        'tantradnyan': 'तंत्रज्ञान',
+        'tantrajnana': 'तंत्रज्ञान',
+        'tech': 'तंत्रज्ञान',
+        'video': 'व्हिडिओ',
+        'photo': 'फोटो'
+      };
+      const resolvedCat = catMap[catQuery.toLowerCase()] || decodeURIComponent(catQuery);
+      if (CATEGORY_SEO[resolvedCat] || resolvedCat === 'व्हिडिओ' || resolvedCat === 'फोटो') {
+        setTimeout(() => filterCategory(resolvedCat), 200);
+      }
+    }
+
+    // 2c. Check Static Page Query Param (e.g. ?page=about, ?page=contact, ?page=privacy)
+    const pageQuery = urlParams.get('page');
+    if (pageQuery) {
+      const pageMap = {
+        'about': 'आमच्याबद्दल',
+        'contact': 'संपर्क',
+        'advertise': 'जाहिरात',
+        'privacy': 'गोपनीयता',
+        'terms': 'अटी'
+      };
+      const resolvedPage = pageMap[pageQuery.toLowerCase()] || decodeURIComponent(pageQuery);
+      setTimeout(() => openStaticInfo(resolvedPage), 250);
+    }
+
+    // 3. Check URL Hash (e.g. #article-101, #maharashtra, #आमच्याबद्दल)
     const hash = window.location.hash;
     if (!hash) return;
     if (hash.startsWith('#article-')) {

@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for data sanitization and validation
+    function isValidArticle(data) {
+      return data.keys().hasAll(['title', 'cat'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 500
+        && data.cat is string && data.cat.size() > 0 && data.cat.size() <= 80
+        && (!('desc' in data) || (data.desc is string && data.desc.size() <= 5000))
+        && (!('content' in data) || (data.content is string && data.content.size() <= 100000))
+        && (!('author' in data) || (data.author is string && data.author.size() <= 150))
+        && (!('img' in data) || (data.img is string && data.img.size() <= 1048576));
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['author', 'text', 'date'])
+        && data.author is string && data.author.size() > 0 && data.author.size() <= 100
+        && data.text is string && data.text.size() > 0 && data.text.size() <= 2000
+        && data.date is string && data.date.size() <= 80;
+    }
+
+    function isValidSubscriber(data) {
+      return data.keys().hasAll(['contact', 'type'])
+        && data.contact is string && data.contact.size() > 0 && data.contact.size() <= 150
+        && data.type in ['email', 'phone'];
+    }
+
+    // 1. Articles Collection: Public Read, Validated or Authenticated Write
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if (request.auth != null) || isValidArticle(request.resource.data);
+    }
+
+    // 1b. Backward-compatible alias for news_articles collection
+    match /news_articles/{articleId} {
+      allow read: if true;
+      allow write: if (request.auth != null) || isValidArticle(request.resource.data);
+    }
+
+    // 2. Breaking News Ticker: Public Read, Public/Admin Write
+    match /ticker/{tickerId} {
+      allow read: if true;
+      allow write: if (request.auth != null) || (request.resource.data.keys().hasAll(['items']) && request.resource.data.items is list);
+    }
+
+    // 3. Reader Comments: Public Read, Validated Public Create
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isValidComment(request.resource.data);
+      allow update, delete: if request.auth != null;
+    }
+
+    // 4. Newsletter Subscribers: Validated Public Create, Authenticated Admin Read/Write
+    match /newsletter_subscribers/{subId} {
+      allow create: if isValidSubscriber(request.resource.data);
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // 5. Settings Collection (WhatsApp Share Template, Site Config): Public Read & Write
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default Deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

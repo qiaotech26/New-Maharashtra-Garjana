@@ -111,6 +111,16 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${host}`);
   let reqPath = decodeURI(parsedUrl.pathname);
 
+  // Handle /favicon.ico directly
+  if (reqPath === '/favicon.ico') {
+    const icoPath = path.join(BASE_DIR, 'favicon.ico');
+    const fallbackLogo = path.join(BASE_DIR, 'logo.jpg');
+    const targetFile = fs.existsSync(icoPath) ? icoPath : fallbackLogo;
+    res.writeHead(200, { 'Content-Type': 'image/x-icon', 'Cache-Control': 'public, max-age=86400' });
+    fs.createReadStream(targetFile).pipe(res);
+    return;
+  }
+
   // Delegate /share, /api/share, and /article/:id to api/share.js
   if (reqPath === '/share' || reqPath === '/api/share' || reqPath.startsWith('/article/')) {
     const shareHandler = require('./api/share.js');

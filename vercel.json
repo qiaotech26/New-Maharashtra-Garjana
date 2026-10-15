@@ -37,6 +37,10 @@
       "destination": "/api/share"
     },
     {
+      "source": "/favicon.ico",
+      "destination": "/logo.jpg"
+    },
+    {
       "source": "/article/:id",
       "destination": "/api/share?id=:id"
     },

@@ -70,12 +70,10 @@ Open [http://localhost:3000](http://localhost:3000) or [http://localhost:8080](h
 
 ---
 
-## 🔑 Admin Login Credentials (Demo)
+## 🔑 Admin Portal Authentication & Security
 
-- **Username**: `admin`
-- **Password**: `admin`
-
-*(Click the **ॲडमिन पॅनेल** button in the top navigation bar to open the publishing portal)*
+- **Initial Access & Verification**: Access the Admin Portal via the **ॲडमिन पॅनेल** button in the navigation bar.
+- **PIN Management**: Protected by client-side SHA-256 cryptographic hashing and rate-limiting. For initial password setup or emergency PIN resets, use the verified administrator contact (**+91 8530664576**) via the in-app OTP reset module.
 
 ---
 

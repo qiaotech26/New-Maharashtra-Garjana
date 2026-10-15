@@ -17,6 +17,12 @@ const firebaseConfig = {
   measurementId: "G-Y477NEWLJ8"
 };
 
+// Expose on global window object for public access
+window.firebaseConfig = firebaseConfig;
+
+// Primary collection name for articles
+const FIRESTORE_ARTICLES_COLLECTION = 'articles';
+
 // Check if credentials were saved via Admin UI
 try {
   const savedCfg = localStorage.getItem('nmg_firebase_config');
@@ -24,6 +30,7 @@ try {
     const parsed = JSON.parse(savedCfg);
     if (parsed && parsed.apiKey) {
       Object.assign(firebaseConfig, parsed);
+      window.firebaseConfig = firebaseConfig;
     }
   }
 } catch (e) { }
@@ -74,6 +81,7 @@ function initFirebase() {
       const parsed = JSON.parse(savedCfg);
       if (parsed && parsed.apiKey) {
         Object.assign(firebaseConfig, parsed);
+        window.firebaseConfig = firebaseConfig;
       }
     }
 
@@ -82,13 +90,11 @@ function initFirebase() {
         firebase.initializeApp(firebaseConfig);
       }
       firestoreDb = firebase.firestore();
-      window.db = firestoreDb; // CRITICAL: Expose for whatsapp-share.js
+      window.db = firestoreDb; // Expose globally for app.js and whatsapp-share.js
 
       // Enable offline persistence so news is cached locally on reader devices
       firestoreDb.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-        if (err.code === 'failed-precondition' || err.code === 'unimplemented') {
-          // Multi-tab or unsupported browser, fallback to normal memory cache
-        }
+        // Multi-tab, unavailable, or unsupported browser: fallback to normal memory cache gracefully
       });
 
       isFirestoreInitialized = true;
@@ -99,7 +105,7 @@ function initFirebase() {
       return false;
     }
   } catch (e) {
-    console.warn('Firebase initialization error, using serverless fallback:', e);
+    console.warn('Firebase initialization note (using serverless fallback):', e);
     return false;
   }
 }
@@ -121,7 +127,7 @@ async function testFirestoreConnection() {
   }
 
   try {
-    const snap = await firestoreDb.collection('news_articles').limit(5).get();
+    const snap = await firestoreDb.collection(FIRESTORE_ARTICLES_COLLECTION).limit(5).get();
     return {
       ok: true,
       status: 'connected',
@@ -138,7 +144,7 @@ async function testFirestoreConnection() {
       code: err.code || 'UNKNOWN',
       rawMessage: errMsg,
       message: isApiDisabled
-        ? '⚠️ Cloud Firestore API चालू नाही किंवा Database तयार केलेले नाही. Firebase Console (console.firebase.google.com) वर जाऊन Firestore Database "Create" करा व Rules मध्ये "allow read, write: if true;" सेट करा.'
+        ? '⚠️ Cloud Firestore API चालू नाही किंवा Database तयार केलेले नाही. Firebase Console (console.firebase.google.com) वर जाऊन Firestore Database तयार करा व अधिकृत Security Rules लागू करा.'
         : `⚠️ Firestore त्रुटी: ${errMsg}`
     };
   }
@@ -172,9 +178,13 @@ async function syncArticleToFirestore(article) {
   // Step 1: Write directly to Cloud Firestore collection if available
   if (isFirestoreInitialized && firestoreDb) {
     try {
-      await firestoreDb.collection('news_articles').doc(docId).set(docData, { merge: true });
+      // Primary write to 'articles' collection
+      await firestoreDb.collection(FIRESTORE_ARTICLES_COLLECTION).doc(docId).set(docData, { merge: true });
       firestoreSuccess = true;
       console.log(`☁️ Article #${docId} synced to Cloud Firestore.`);
+
+      // Also sync to legacy 'news_articles' for backward-compatibility
+      firestoreDb.collection('news_articles').doc(docId).set(docData, { merge: true }).catch(() => {});
     } catch (err) {
       firestoreErrorMsg = err.message || 'Firestore write rejected';
       console.warn('Firestore write warning:', err);
@@ -210,7 +220,8 @@ async function deleteArticleFromFirestore(articleId) {
 
   if (isFirestoreInitialized && firestoreDb) {
     try {
-      await firestoreDb.collection('news_articles').doc(docId).delete();
+      await firestoreDb.collection(FIRESTORE_ARTICLES_COLLECTION).doc(docId).delete();
+      firestoreDb.collection('news_articles').doc(docId).delete().catch(() => {});
       console.log(`🗑️ Article #${docId} deleted from Cloud Firestore.`);
     } catch (err) {
       console.warn('Firestore delete error:', err);
@@ -228,16 +239,22 @@ async function deleteArticleFromFirestore(articleId) {
 
 // 6. REALTIME LISTENER - PUSH UPDATES TO ALL VIEWERS INSTANTLY
 let fallbackPollInterval = null;
+let activeFirestoreUnsubscribe = null;
 
 function listenToFirestoreNews(onUpdate) {
+  if (activeFirestoreUnsubscribe && typeof activeFirestoreUnsubscribe === 'function') {
+    try { activeFirestoreUnsubscribe(); } catch (e) { }
+    activeFirestoreUnsubscribe = null;
+  }
+
   if (!isFirestoreInitialized) {
     initFirebase();
   }
 
   if (isFirestoreInitialized && firestoreDb) {
     try {
-      const unsubscribe = firestoreDb.collection('news_articles')
-        .orderBy('numericId', 'desc')
+      // Query without strict orderBy constraint so it works instantly without index requirements
+      const unsubscribe = firestoreDb.collection(FIRESTORE_ARTICLES_COLLECTION)
         .limit(100)
         .onSnapshot((snapshot) => {
           const articles = [];
@@ -248,6 +265,9 @@ function listenToFirestoreNews(onUpdate) {
               id: Number(data.numericId || data.id) || data.id
             });
           });
+          // Sort newest first safely in memory
+          articles.sort((a, b) => (Number(b.numericId || b.id) || 0) - (Number(a.numericId || a.id) || 0));
+
           if (articles.length > 0 && typeof onUpdate === 'function') {
             onUpdate(articles);
           }
@@ -257,6 +277,7 @@ function listenToFirestoreNews(onUpdate) {
           startFallbackPolling(onUpdate);
         });
 
+      activeFirestoreUnsubscribe = unsubscribe;
       return unsubscribe;
     } catch (e) {
       console.warn('Error attaching Firestore listener:', e);
@@ -345,4 +366,3 @@ window.syncArticleToFirestore = syncArticleToFirestore;
 window.deleteArticleFromFirestore = deleteArticleFromFirestore;
 window.listenToFirestoreNews = listenToFirestoreNews;
 window.fetchServerlessArticlesFallback = fetchServerlessArticlesFallback;
-

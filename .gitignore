@@ -18,6 +18,10 @@ Thumbs.db
 articles_store.json
 news_data.json
 
+# Backup files
+*.bak
+
 # Local dev/test scripts — not part of the production codebase
 test_local.js
 test_teardown.js
+

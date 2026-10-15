@@ -27,23 +27,23 @@
     var STORAGE_KEY = 'nmg_share_template_config';
     var SITE_BASE = 'https://newmaharashtragarjana.com/';
 
-    var WA_LINK = 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t';
+    var WA_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t';
+    var WA_GROUP_LINK = 'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3';
     var OLD_LINKS = [
-        'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3',
         'https://whatsapp.com/channel/0029VazsOCg8KMqs4yeUu50Q',
         'https://whatsapp.com/channel/0029VaqqNfx59PwNTUXxto3t'
     ];
 
     var DEFAULT_TEMPLATE = {
         groupHeading: 'पुणे पिंपरी चिंचवड शहर जिल्हा ब्रेकिंग न्यूज साठी आजच व्हाट्सएप ग्रुप जॉईन करा',
-        groupLink: WA_LINK,
+        groupLink: WA_GROUP_LINK,
         channelHeading: 'ताज्या बातम्यांचे अपडेट पहा व्हाट्सएप चॅनेलवर',
-        channelLink: WA_LINK,
+        channelLink: WA_CHANNEL_LINK,
         facebookUrl: 'https://www.facebook.com/share/1BwdzGiPf8/',
         instagramUrl: 'https://www.instagram.com/newmaharashtragarjana',
         youtubeUrl: 'https://youtube.com/@umeshbharatpatil',
         websiteUrl: 'https://newmaharashtragarjana.com/',
-        contactLabel: 'बातम्या / जाहिरातींकरता संपर्क:',
+        contactLabel: 'बातम्या / जाहिरतींकरता संपर्क:',
         contactPhone: '8530664576'
     };
 
@@ -70,8 +70,8 @@
             );
         } catch (e) { saved = {}; }
         var tpl = Object.assign({}, DEFAULT_TEMPLATE, saved);
-        if (!tpl.groupLink || OLD_LINKS.indexOf(tpl.groupLink.trim()) !== -1) tpl.groupLink = WA_LINK;
-        if (!tpl.channelLink || OLD_LINKS.indexOf(tpl.channelLink.trim()) !== -1) tpl.channelLink = WA_LINK;
+        if (!tpl.groupLink || OLD_LINKS.indexOf(tpl.groupLink.trim()) !== -1) tpl.groupLink = WA_GROUP_LINK;
+        if (!tpl.channelLink || OLD_LINKS.indexOf(tpl.channelLink.trim()) !== -1) tpl.channelLink = WA_CHANNEL_LINK;
         return tpl;
     }
 
