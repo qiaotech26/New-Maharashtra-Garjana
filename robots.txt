@@ -1,5 +1,5 @@
 # Robots.txt for New Maharashtra Garjana (न्यू महाराष्ट्र गर्जना)
-# Website: https://newmaharashtragarjana.com/
+# Website: https://www.newmaharashtragarjana.com/
 
 User-agent: *
 Allow: /
@@ -18,5 +18,4 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-# Sitemap Location
-Sitemap: https://newmaharashtragarjana.com/sitemap.xml
+Sitemap: https://www.newmaharashtragarjana.com/sitemap.xml

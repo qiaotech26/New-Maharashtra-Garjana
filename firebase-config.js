@@ -215,7 +215,7 @@ async function syncArticleToFirestore(article) {
 
 // 5. REALTIME NEWS SYNC - DELETE ARTICLE FROM FIRESTORE
 async function deleteArticleFromFirestore(articleId) {
-  if (!articleId) return;
+  if (!articleId) return false;
   const docId = String(articleId);
 
   if (isFirestoreInitialized && firestoreDb) {
@@ -223,8 +223,13 @@ async function deleteArticleFromFirestore(articleId) {
       await firestoreDb.collection(FIRESTORE_ARTICLES_COLLECTION).doc(docId).delete();
       firestoreDb.collection('news_articles').doc(docId).delete().catch(() => {});
       console.log(`🗑️ Article #${docId} deleted from Cloud Firestore.`);
+      return true;
     } catch (err) {
       console.warn('Firestore delete error:', err);
+      if (err.code === 'permission-denied') {
+        console.error('Firestore Delete Denied: User is not authenticated as the owner.');
+        return false;
+      }
     }
   }
 
@@ -235,6 +240,7 @@ async function deleteArticleFromFirestore(articleId) {
       body: JSON.stringify({ id: docId, action: 'delete' })
     }).catch(() => { });
   } catch (e) { }
+  return true;
 }
 
 // 6. REALTIME LISTENER - PUSH UPDATES TO ALL VIEWERS INSTANTLY

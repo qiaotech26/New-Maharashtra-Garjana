@@ -3,9 +3,25 @@ const path = require('path');
 
 const GITHUB_REPO = 'qiaotech26/New-Maharashtra-Garjana';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+const ADMIN_SYNC_KEY = process.env.ADMIN_SYNC_KEY || '';
 
 // In-memory cache shared across warm serverless invocations
 global._NMG_ARTICLES_CACHE = global._NMG_ARTICLES_CACHE || {};
+global._NMG_RATE_LIMITS = global._NMG_RATE_LIMITS || {};
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxReq = 30; // Max 30 write/delete requests per minute
+
+  if (!global._NMG_RATE_LIMITS[ip] || now > global._NMG_RATE_LIMITS[ip].resetAt) {
+    global._NMG_RATE_LIMITS[ip] = { count: 1, resetAt: now + windowMs };
+    return true;
+  }
+
+  global._NMG_RATE_LIMITS[ip].count++;
+  return global._NMG_RATE_LIMITS[ip].count <= maxReq;
+}
 
 module.exports = async (req, res) => {
   // Polyfill status, json, and send methods if running in bare Node HTTP server
@@ -29,15 +45,31 @@ module.exports = async (req, res) => {
     };
   }
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Strict CORS restriction
+  const allowedOrigins = [
+    'https://www.newmaharashtragarjana.com',
+    'https://newmaharashtragarjana.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5000'
+  ];
+  const reqOrigin = req.headers.origin;
+  if (allowedOrigins.includes(reqOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+  } else if (!reqOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.newmaharashtragarjana.com');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.newmaharashtragarjana.com');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Sync-Secret');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // GET: return cached articles map
+  // GET: return cached articles map (public read allowed)
   if (req.method === 'GET') {
     let store = global._NMG_ARTICLES_CACHE || {};
     try {
@@ -48,6 +80,22 @@ module.exports = async (req, res) => {
       }
     } catch (e) { }
     return res.status(200).json(store);
+  }
+
+  // Rate Limiting for mutating operations (POST, DELETE)
+  const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  if (!checkRateLimit(String(clientIp))) {
+    return res.status(429).json({ error: 'Too Many Requests. Rate limit exceeded.' });
+  }
+
+  // Authorization Check if ADMIN_SYNC_KEY is configured
+  if (ADMIN_SYNC_KEY) {
+    const authHeader = req.headers['authorization'] || '';
+    const secretHeader = req.headers['x-sync-secret'] || '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader;
+    if (bearer !== ADMIN_SYNC_KEY && secretHeader !== ADMIN_SYNC_KEY) {
+      return res.status(401).json({ error: 'Unauthorized: Valid sync credentials required' });
+    }
   }
 
   // Parse request body
@@ -63,7 +111,10 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing article id' });
   }
 
-  const stringId = String(id);
+  const stringId = String(id).trim();
+  if (stringId.length > 100) {
+    return res.status(400).json({ error: 'Invalid article id length' });
+  }
 
   // Handle DELETE request
   if (isDelete) {
@@ -101,16 +152,46 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // Input Validation for POST
+  const title = String(body.title || '').trim();
+  const cat = String(body.cat || '').trim();
+  if (!title || title.length > 500) {
+    return res.status(400).json({ error: 'Validation Error: Title is required and must be <= 500 characters' });
+  }
+  if (!cat || cat.length > 80) {
+    return res.status(400).json({ error: 'Validation Error: Category is required and must be <= 80 characters' });
+  }
+
+  const desc = String(body.desc || body.caption || '').trim();
+  if (desc.length > 5000) {
+    return res.status(400).json({ error: 'Validation Error: Description exceeds 5000 characters' });
+  }
+
+  const content = String(body.content || '').trim();
+  if (content.length > 100000) {
+    return res.status(400).json({ error: 'Validation Error: Content exceeds 100000 characters' });
+  }
+
+  const img = String(body.img || '').trim();
+  if (img.length > 1048576) {
+    return res.status(400).json({ error: 'Validation Error: Image data exceeds 1MB limit' });
+  }
+
+  const author = String(body.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी').trim();
+  if (author.length > 150) {
+    return res.status(400).json({ error: 'Validation Error: Author exceeds 150 characters' });
+  }
+
   try {
     const articleRecord = {
       id: stringId,
       numericId: Number(body.numericId || body.id) || Date.now(),
-      title: body.title || 'न्यू महाराष्ट्र गर्जना बातमी',
-      img: body.img || '',
-      desc: body.desc || body.caption || '',
-      content: body.content || '',
-      cat: body.cat || 'महाराष्ट्र',
-      author: body.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी',
+      title: title,
+      img: img,
+      desc: desc,
+      content: content,
+      cat: cat,
+      author: author,
       time: body.time || new Date().toLocaleDateString('mr-IN'),
       isHero: Boolean(body.isHero),
       isBreaking: Boolean(body.isBreaking),

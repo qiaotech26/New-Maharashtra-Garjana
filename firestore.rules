@@ -2,7 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for data sanitization and validation
+    // Helper functions for data sanitization, owner auth, and validation
+    function isOwner() {
+      return request.auth != null && (
+        request.auth.token.email == 'maharashtragarjanews24@gmail.com' ||
+        request.auth.token.admin == true
+      );
+    }
+
     function isValidArticle(data) {
       return data.keys().hasAll(['title', 'cat'])
         && data.title is string && data.title.size() > 0 && data.title.size() <= 500
@@ -26,41 +33,43 @@ service cloud.firestore {
         && data.type in ['email', 'phone'];
     }
 
-    // 1. Articles Collection: Public Read, Validated or Authenticated Write
+    // 1. Articles Collection: Public Read of published news, Owner-Only Create/Update/Delete
     match /articles/{articleId} {
       allow read: if true;
-      allow write: if (request.auth != null) || isValidArticle(request.resource.data);
+      allow create, update: if isOwner() && isValidArticle(request.resource.data);
+      allow delete: if isOwner();
     }
 
     // 1b. Backward-compatible alias for news_articles collection
     match /news_articles/{articleId} {
       allow read: if true;
-      allow write: if (request.auth != null) || isValidArticle(request.resource.data);
+      allow create, update: if isOwner() && isValidArticle(request.resource.data);
+      allow delete: if isOwner();
     }
 
-    // 2. Breaking News Ticker: Public Read, Public/Admin Write
+    // 2. Breaking News Ticker: Public Read, Owner-Only Write
     match /ticker/{tickerId} {
       allow read: if true;
-      allow write: if (request.auth != null) || (request.resource.data.keys().hasAll(['items']) && request.resource.data.items is list);
+      allow write: if isOwner() && (request.resource.data.keys().hasAll(['items']) && request.resource.data.items is list);
     }
 
-    // 3. Reader Comments: Public Read, Validated Public Create
+    // 3. Reader Comments: Public Read, Validated Public Create, Owner-Only Delete/Update
     match /comments/{commentId} {
       allow read: if true;
       allow create: if isValidComment(request.resource.data);
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isOwner();
     }
 
-    // 4. Newsletter Subscribers: Validated Public Create, Authenticated Admin Read/Write
+    // 4. Newsletter Subscribers: Validated Public Create, Owner-Only Read/Update/Delete
     match /newsletter_subscribers/{subId} {
       allow create: if isValidSubscriber(request.resource.data);
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isOwner();
     }
 
-    // 5. Settings Collection (WhatsApp Share Template, Site Config): Public Read & Write
+    // 5. Settings Collection (WhatsApp Share Template, Site Config): Public Read, Owner-Only Write
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isOwner();
     }
 
     // Default Deny all other collections

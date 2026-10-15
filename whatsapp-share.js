@@ -25,7 +25,7 @@
     'use strict';
 
     var STORAGE_KEY = 'nmg_share_template_config';
-    var SITE_BASE = 'https://newmaharashtragarjana.com/';
+    var SITE_BASE = 'https://www.newmaharashtragarjana.com/';
 
     var WA_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VagqNfx59PwNTUXxto3t';
     var WA_GROUP_LINK = 'https://chat.whatsapp.com/I0UaexFFIbZ06FoHHrvmp3';
@@ -42,7 +42,7 @@
         facebookUrl: 'https://www.facebook.com/share/1BwdzGiPf8/',
         instagramUrl: 'https://www.instagram.com/newmaharashtragarjana',
         youtubeUrl: 'https://youtube.com/@umeshbharatpatil',
-        websiteUrl: 'https://newmaharashtragarjana.com/',
+        websiteUrl: 'https://www.newmaharashtragarjana.com/',
         contactLabel: 'बातम्या / जाहिरतींकरता संपर्क:',
         contactPhone: '8530664576'
     };

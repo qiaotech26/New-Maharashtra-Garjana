@@ -42,7 +42,7 @@ function sanitizeUrl(url) {
   if (/^(https?:\/\/|\/|data:image\/(jpeg|png|webp|gif);base64,)/i.test(trimmed)) {
     return trimmed;
   }
-  return 'https://newmaharashtragarjana.com/marathi-title-gold-glow.png';
+  return 'https://www.newmaharashtragarjana.com/marathi-title-gold-glow.png';
 }
 
 function sanitizeArticleHtml(htmlStr) {
@@ -501,8 +501,8 @@ function renderPhotoGrid() {
 const DEFAULT_SEO = {
   title: "न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana) | ताज्या मराठी बातम्या, राजकारण, चालू घडामोडी & लाईव्ह अपडेट्स",
   desc: "महाराष्ट्रातील अग्रगण्य मराठी डिजिटल वृत्तसेवा. ताज्या बातम्या, राजकारण, मुंबई, पुणे, देश-विदेश, क्रीडा, मनोरंजन, व्यापार, तंत्रज्ञान आणि थेट लाईव्ह अपडेट्स.",
-  canonical: "https://newmaharashtragarjana.com/",
-  image: "https://newmaharashtragarjana.com/logo.jpg"
+  canonical: "https://www.newmaharashtragarjana.com/",
+  image: "https://www.newmaharashtragarjana.com/logo.jpg"
 };
 
 const CATEGORY_SEO = {
@@ -623,7 +623,7 @@ function injectDynamicNewsArticleSchema(article) {
     "@type": "NewsArticle",
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "https://newmaharashtragarjana.com/#article-" + article.id
+      "@id": "https://www.newmaharashtragarjana.com/#article-" + article.id
     },
     "headline": article.title,
     "description": article.desc || article.title,
@@ -639,10 +639,10 @@ function injectDynamicNewsArticleSchema(article) {
     "publisher": {
       "@type": "NewsMediaOrganization",
       "name": "न्यू महाराष्ट्र गर्जना (New Maharashtra Garjana)",
-      "url": "https://newmaharashtragarjana.com/",
+      "url": "https://www.newmaharashtragarjana.com/",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://newmaharashtragarjana.com/favicon.ico"
+        "url": "https://www.newmaharashtragarjana.com/favicon.ico"
       }
     }
   };
@@ -674,7 +674,7 @@ function filterCategory(catName, event) {
   // Update SEO for this category
   const seo = CATEGORY_SEO[catName] || DEFAULT_SEO;
   const hashVal = catName === 'सर्व' ? '' : `#${catName}`;
-  setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${hashVal}`);
+  setSEOMetadata(seo.title, seo.desc, `https://www.newmaharashtragarjana.com/${hashVal}`);
   try {
     if (catName !== 'सर्व') {
       history.replaceState(null, '', hashVal);
@@ -774,7 +774,7 @@ function openArticle(id) {
     if (paramTitle) {
       const cleanTitle = paramTitle.substring(0, 300);
       const cleanDesc = (paramDesc || paramTitle).substring(0, 1000);
-      const cleanImg = sanitizeUrl(paramImg || 'https://newmaharashtragarjana.com/logo.jpg');
+      const cleanImg = sanitizeUrl(paramImg || 'https://www.newmaharashtragarjana.com/logo.jpg');
       article = {
         id: id,
         cat: 'महाराष्ट्र',
@@ -823,7 +823,7 @@ function openArticle(id) {
   const safeAuthor = escapeHtml(article.author || 'न्यू महाराष्ट्र गर्जना प्रतिनिधी');
   const authorAvatar = escapeHtml(article.author ? article.author.charAt(0) : 'न');
   const safeTime = escapeHtml(article.time || '');
-  const safeImg = sanitizeUrl(article.img || 'https://newmaharashtragarjana.com/logo.jpg');
+  const safeImg = sanitizeUrl(article.img || 'https://www.newmaharashtragarjana.com/logo.jpg');
   const defaultBody = `<p>${escapeHtml(article.desc || article.title || '')}</p><p>महाराष्ट्रातील क्रीडा, राजकारण आणि सामाजिक घडामोडींचा सर्वात जलद वेगाने आढावा घेण्यासाठी न्यू महाराष्ट्र गर्जना शी जोडलेले राहा.</p>`;
   const safeContent = article.content ? sanitizeArticleHtml(article.content) : defaultBody;
 
@@ -919,7 +919,7 @@ function closeArticleModal() {
   removeDynamicNewsArticleSchema();
   if (CATEGORY_SEO[appState.activeCategory]) {
     const seo = CATEGORY_SEO[appState.activeCategory];
-    setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
+    setSEOMetadata(seo.title, seo.desc, `https://www.newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
   } else {
     setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
   }
@@ -1036,14 +1036,14 @@ function shareArticle(platform, id) {
     } catch (e) { }
   }
 
-  const origin = 'https://newmaharashtragarjana.com';
+  const origin = 'https://www.newmaharashtragarjana.com';
   const shareUrl = `${origin}/?p=${id}`;
   const targetArticle = article || {
     id: String(id),
     title: title,
     desc: cleanDesc,
     url: shareUrl,
-    img: document.querySelector('.article-main-image-box img')?.src || 'https://newmaharashtragarjana.com/logo.jpg'
+    img: document.querySelector('.article-main-image-box img')?.src || 'https://www.newmaharashtragarjana.com/logo.jpg'
   };
 
   if (platform === 'whatsapp') {
@@ -1306,8 +1306,8 @@ function toggleAdminResetModule(show) {
   if (show) {
     loginBox.style.display = 'none';
     resetBox.style.display = 'block';
-    const phoneInput = document.getElementById('resetContactPhone');
-    if (phoneInput && !phoneInput.value) phoneInput.value = ADMIN_REGISTERED_PHONE;
+    const emailInput = document.getElementById('resetContactEmail');
+    if (emailInput && !emailInput.value) emailInput.value = 'maharashtragarjanews24@gmail.com';
   } else {
     resetBox.style.display = 'none';
     loginBox.style.display = 'block';
@@ -1326,140 +1326,118 @@ function togglePasswordVisibility(inputId, btnEl) {
   }
 }
 
-function requestResetOtp() {
-  const phoneVal = (document.getElementById('resetContactPhone')?.value || '').replace(/\D/g, '');
-  if (!phoneVal.endsWith(ADMIN_REGISTERED_PHONE)) {
-    showToast('अवैध संपर्क क्रमांक! केवळ नोंदणीकृत क्रमांक (' + ADMIN_REGISTERED_PHONE + ') वैध आहे.', 'danger');
+async function handleAdminPasswordReset(event) {
+  event.preventDefault();
+  const emailVal = (document.getElementById('resetContactEmail')?.value || '').trim();
+
+  if (!emailVal || !emailVal.includes('@')) {
+    showToast('कृपया वैध अधिकृत नोंदणीकृत ईमेल प्रविष्ट करा.', 'warning');
     return;
   }
 
-  // Cryptographically secure 6-digit OTP
-  const randArr = new Uint32Array(1);
-  crypto.getRandomValues(randArr);
-  const rawOtp = String(100000 + (randArr[0] % 900000));
+  const btn = document.getElementById('btnSendPasswordReset');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'लिंक पाठवत आहे... ⏳';
+  }
 
-  hashPin(rawOtp).then(otpHash => {
-    currentResetOtpSession = {
-      hash: otpHash,
-      expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
-    };
-
-    // Output to developer console for development testing only — never populate DOM or input
-    console.info('[NMG Admin Auth Simulation] OTP पाठवला (' + ADMIN_REGISTERED_PHONE + '):', rawOtp);
-
-    const helpEl = document.getElementById('otpHelpStatus');
-    const btn = document.getElementById('btnGetOtp');
-
-    if (helpEl) {
-      helpEl.innerHTML = '<span style="color: #10B981; font-weight:600;">✓ ६-अंकी सुरक्षा कोड अधिकृत क्रमांकावर पाठवला आहे (५ मिनिटे वैध).</span>';
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().sendPasswordResetEmail(emailVal);
+      showToast(`✅ अधिकृत पासवर्ड रीसेट लिंक ${emailVal} वर पाठवली आहे. कृपया ईमेल तपासा.`, 'success');
+      toggleAdminResetModule(false);
+    } else {
+      throw new Error('Firebase Auth सेवा उपलब्ध नाही.');
     }
-    if (btn) btn.textContent = 'पुन्हा पाठवा';
-
-    showToast('सुरक्षा पडताळणी कोड अधिकृत क्रमांकावर पाठवला गेला आहे.', 'success');
-  });
+  } catch (err) {
+    console.error('Password reset error:', err);
+    showToast('पासवर्ड रीसेट लिंक पाठवताना त्रुटी: ' + (err.message || 'तपासा'), 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✉️ पासवर्ड रीसेट लिंक पाठवा (Send Reset Email)';
+    }
+  }
 }
 
-async function handleAdminPinReset(event) {
-  event.preventDefault();
-  const phoneVal = (document.getElementById('resetContactPhone')?.value || '').replace(/\D/g, '');
-  const otpVal = (document.getElementById('resetOtpInput')?.value || '').trim();
-  const newPin = (document.getElementById('resetNewPin')?.value || '').trim();
-  const confirmPin = (document.getElementById('resetConfirmPin')?.value || '').trim();
-
-  // Validate Phone
-  if (!phoneVal.endsWith(ADMIN_REGISTERED_PHONE)) {
-    showToast('नोंदणीकृत अधिकृत संपर्क क्रमांक (8530664576) आवश्यक आहे!', 'danger');
-    return;
+async function handleDashboardPasswordResetEmail() {
+  const ownerEmail = 'maharashtragarjanews24@gmail.com';
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().sendPasswordResetEmail(ownerEmail);
+      showToast(`✅ पासवर्ड रीसेट लिंक ${ownerEmail} वर पाठवली आहे.`, 'success');
+    } else {
+      throw new Error('Firebase Auth सेवा उपलब्ध नाही.');
+    }
+  } catch (err) {
+    console.error('Dashboard password reset error:', err);
+    showToast('त्रुटी: ' + (err.message || 'तपासा'), 'danger');
   }
-
-  // Validate OTP
-  if (!currentResetOtpSession || Date.now() > currentResetOtpSession.expiresAt) {
-    showToast('सुरक्षा कोडची मुदत संपली आहे किंवा कोड मागवला नाही. कृपया "कोड मिळवा" वर क्लिक करा.', 'danger');
-    return;
-  }
-
-  const inputOtpHash = await hashPin(otpVal);
-  if (inputOtpHash !== currentResetOtpSession.hash) {
-    showToast('अवैध सुरक्षा कोड (OTP)! कृपया एसएमएसवर आलेला योग्य कोड टाका.', 'danger');
-    return;
-  }
-
-  // Validate PIN
-  if (newPin.length < 4) {
-    showToast('पिन किमान ४ अक्षरे किंवा अंकांचा असावा!', 'warning');
-    return;
-  }
-
-  if (newPin !== confirmPin) {
-    showToast('नवीन पिन आणि पुष्टी पिन जुळत नाहीत!', 'danger');
-    return;
-  }
-
-  // Store new hashed PIN
-  const newPinHash = await hashPin(newPin);
-  localStorage.setItem('nmg_admin_pin_hash', newPinHash);
-  localStorage.removeItem('nmg_admin_pin');
-  currentResetOtpSession = null;
-  adminFailedAttempts = 0;
-  adminLockoutUntil = 0;
-
-  showToast('पिन यशस्वीरीत्या रीसेट करण्यात आला! नवीन पिनने लॉगिन करा.', 'success');
-
-  // Pre-fill login box
-  const pwInput = document.getElementById('adminPasswordInput');
-  if (pwInput) pwInput.value = newPin;
-
-  // Clear reset form
-  document.getElementById('adminPinResetForm')?.reset();
-
-  // Switch back to login
-  toggleAdminResetModule(false);
 }
 
 async function handleAdminLogin(event) {
   event.preventDefault();
 
-  if (Date.now() < adminLockoutUntil) {
-    const remainingSec = Math.ceil((adminLockoutUntil - Date.now()) / 1000);
-    showToast(`वारंवार चुकीच्या प्रयत्नांमुळे लॉगिन तात्पुरते ब्लॉक केले आहे. कृपया ${remainingSec} सेकंदांनंतर प्रयत्न करा.`, 'danger');
+  const u = (document.getElementById('adminUsernameInput')?.value || '').trim();
+  const p = (document.getElementById('adminPasswordInput')?.value || '').trim();
+
+  const email = u.includes('@') ? u : (u.toLowerCase() === 'admin' ? 'maharashtragarjanews24@gmail.com' : u);
+
+  if (!email || !p) {
+    showToast('कृपया नोंदणीकृत ईमेल आणि पासवर्ड प्रविष्ट करा.', 'warning');
     return;
   }
 
-  const u = (document.getElementById('adminUsernameInput')?.value || '').trim();
-  const p = (document.getElementById('adminPasswordInput')?.value || '').trim();
-  const targetHash = await getStoredAdminPinHash();
-  const inputHash = await hashPin(p);
+  const submitBtn = document.getElementById('btnAdminLoginSubmit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'प्रमाणीकरण करत आहे... ⏳';
+  }
 
-  const isUserValid = (u.toLowerCase() === 'admin' || u.replace(/\D/g, '').endsWith(ADMIN_REGISTERED_PHONE));
-  const isPinValid = (inputHash === targetHash);
-
-  if (isUserValid && isPinValid) {
-    adminFailedAttempts = 0;
-    adminLockoutUntil = 0;
-    appState.isAdminLoggedIn = true;
-    sessionStorage.setItem('nmg_admin_session', 'true');
-    document.getElementById('adminLoginBox').style.display = 'none';
-    if (document.getElementById('adminResetBox')) {
-      document.getElementById('adminResetBox').style.display = 'none';
-    }
-    document.getElementById('adminDashboardBox').style.display = 'block';
-    renderAdminTable();
-    showToast('ॲडमिन पॅनेलमध्ये स्वागत आहे!', 'success');
-  } else {
-    adminFailedAttempts++;
-    if (adminFailedAttempts >= 5) {
-      adminLockoutUntil = Date.now() + 5 * 60 * 1000; // 5-minute lockout
-      showToast('५ वेळा चुकीचा प्रयत्न! सुरक्षेसाठी ५ मिनिटे लॉगिन तात्पुरते ब्लॉक केले आहे.', 'danger');
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().signInWithEmailAndPassword(email, p);
+      appState.isAdminLoggedIn = true;
+      sessionStorage.setItem('nmg_admin_session', 'true');
+      sessionStorage.setItem('nmg_admin_email', email);
+      document.getElementById('adminLoginBox').style.display = 'none';
+      if (document.getElementById('adminResetBox')) {
+        document.getElementById('adminResetBox').style.display = 'none';
+      }
+      document.getElementById('adminDashboardBox').style.display = 'block';
+      renderAdminTable();
+      showToast('✅ Firebase सुरक्षित प्रमाणीकरण यशस्वी! ॲडमिन पॅनेलमध्ये स्वागत आहे.', 'success');
     } else {
-      const attemptsLeft = 5 - adminFailedAttempts;
-      showToast(`चुकीचा युझरनेम किंवा पिन! शिल्लक प्रयत्न: ${attemptsLeft}`, 'danger');
+      throw new Error('Firebase Auth SDK लोड झालेले नाही.');
+    }
+  } catch (error) {
+    console.error('Firebase Auth Login Error:', error);
+    let msg = 'लॉगिन अयशस्वी: कृपया ईमेल आणि पासवर्ड तपासा.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'चुकीचा पासवर्ड! कृपया योग्य पासवर्ड प्रविष्ट करा.';
+    } else if (error.code === 'auth/user-not-found') {
+      msg = 'हा ईमेल अधिकृत ॲडमिन म्हणून नोंदणीकृत नाही.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'वारंवार चुकीच्या प्रयत्नांमुळे तात्पुरते ब्लॉक केले आहे. पासवर्ड रीसेट करा किंवा थोड्या वेळाने प्रयत्न करा.';
+    }
+    showToast(msg, 'danger');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'सुरक्षित लॉगिन करा 🔓';
     }
   }
 }
 
-function handleAdminLogout() {
+async function handleAdminLogout() {
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().signOut();
+    }
+  } catch (e) { }
   appState.isAdminLoggedIn = false;
   sessionStorage.removeItem('nmg_admin_session');
+  sessionStorage.removeItem('nmg_admin_email');
   document.getElementById('adminLoginBox').style.display = 'block';
   if (document.getElementById('adminResetBox')) {
     document.getElementById('adminResetBox').style.display = 'none';
@@ -1471,51 +1449,29 @@ function handleAdminLogout() {
 function updateSecurityTabDisplay() {
   const pinDisplay = document.getElementById('currentActivePinDisplay');
   if (!pinDisplay) return;
-  pinDisplay.textContent = '••••••';
+  pinDisplay.textContent = '🔒 Google Firebase Auth (सुरक्षित)';
 }
 
-function togglePinDisplay() {
-  // Plaintext display disabled for security
-  showToast('सुरक्षेच्या कारणास्तव ॲडमिन पिन एन्क्रिप्टेड (SHA-256) ठेवला जातो.', 'info');
-}
-
-async function handleDashboardPinChange(event) {
-  event.preventDefault();
-  const currentPin = (document.getElementById('dashCurrentPin')?.value || '').trim();
-  const newPin = (document.getElementById('dashNewPin')?.value || '').trim();
-  const confirmPin = (document.getElementById('dashConfirmPin')?.value || '').trim();
-
-  const currentStoredHash = await getStoredAdminPinHash();
-  const currentInputHash = await hashPin(currentPin);
-
-  if (currentInputHash !== currentStoredHash) {
-    showToast('सध्याचा ॲडमिन पिन चुकीचा आहे!', 'danger');
-    return;
-  }
-
-  if (newPin.length < 4) {
-    showToast('नवीन पिन किमान ४ अक्षरे किंवा अंकांचा असावा!', 'warning');
-    return;
-  }
-  if (newPin !== confirmPin) {
-    showToast('नवीन पिन आणि पुष्टी पिन जुळत नाहीत!', 'danger');
-    return;
-  }
-
-  const newHash = await hashPin(newPin);
-  localStorage.setItem('nmg_admin_pin_hash', newHash);
-  localStorage.removeItem('nmg_admin_pin');
-  showToast('नवीन ॲडमिन पिन यशस्वीरीत्या जतन करण्यात आला!', 'success');
-  document.getElementById('dashChangePinForm')?.reset();
-  updateSecurityTabDisplay();
-}
-
-function resetPinToDefault() {
-  if (confirm('आपण खरोखर ॲडमिन पिन मूळ स्थितीत रिसेट करू इच्छिता?')) {
-    localStorage.removeItem('nmg_admin_pin_hash');
-    localStorage.removeItem('nmg_admin_pin');
-    showToast('पिन मूळ डिफॉल्ट स्थितीत रिसेट झाला!', 'info');
-    updateSecurityTabDisplay();
+function setupFirebaseAuthListener() {
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user && (user.email === 'maharashtragarjanews24@gmail.com' || user.emailVerified || appState.isAdminLoggedIn)) {
+        appState.isAdminLoggedIn = true;
+        sessionStorage.setItem('nmg_admin_session', 'true');
+        sessionStorage.setItem('nmg_admin_email', user.email);
+        const loginBox = document.getElementById('adminLoginBox');
+        const resetBox = document.getElementById('adminResetBox');
+        const dashBox = document.getElementById('adminDashboardBox');
+        if (loginBox) loginBox.style.display = 'none';
+        if (resetBox) resetBox.style.display = 'none';
+        if (dashBox) dashBox.style.display = 'block';
+        renderAdminTable();
+      } else if (!user) {
+        appState.isAdminLoggedIn = false;
+        sessionStorage.removeItem('nmg_admin_session');
+        sessionStorage.removeItem('nmg_admin_email');
+      }
+    });
   }
 }
 
@@ -1622,7 +1578,7 @@ function handleSaveShareTemplateConfig(event) {
     facebookUrl: document.getElementById('shareTplFacebookUrl')?.value.trim() || 'https://www.facebook.com/newmaharashtragarjana',
     instagramUrl: document.getElementById('shareTplInstagramUrl')?.value.trim() || 'https://www.instagram.com/newmaharashtragarjana?stkn=MTE5OGxjdnIydno3bA==',
     youtubeUrl: document.getElementById('shareTplYoutubeUrl')?.value.trim() || 'https://www.youtube.com/@newmaharashtragarjana',
-    websiteUrl: document.getElementById('shareTplWebsiteUrl')?.value.trim() || 'https://newmaharashtragarjana.com',
+    websiteUrl: document.getElementById('shareTplWebsiteUrl')?.value.trim() || 'https://www.newmaharashtragarjana.com',
     contactHeading: 'बातम्या जाहिरातींकरता संपर्क:',
     contactPhone: document.getElementById('shareTplContactPhone')?.value.trim() || defaultWhatsAppShareTemplate.contactPhone
   };
@@ -2290,10 +2246,18 @@ function editArticle(id) {
   switchAdminTab('add');
 }
 
-function deleteArticle(id) {
+async function deleteArticle(id) {
   if (confirm('ही बातमी खरोखर हटवायची आहे का?')) {
     const stringId = String(id);
     const numId = Number(id);
+
+    if (typeof deleteArticleFromFirestore === 'function') {
+      const ok = await deleteArticleFromFirestore(id);
+      if (ok === false) {
+        showToast('बातमी हटवण्याची परवानगी नाकारली गेली. कृपया अधिकृत ॲडमिन म्हणून लॉगिन करा.', 'danger');
+        return;
+      }
+    }
 
     const categories = ['latest', 'maharashtra', 'politics', 'sports', 'entertainment', 'videos', 'photos'];
     categories.forEach(cat => {
@@ -2303,10 +2267,6 @@ function deleteArticle(id) {
     });
 
     saveStateToStorage();
-
-    if (typeof deleteArticleFromFirestore === 'function') {
-      deleteArticleFromFirestore(id);
-    }
 
     try {
       fetch('/api/sync-article', {
@@ -2766,7 +2726,7 @@ function openStaticInfo(topic) {
     `;
   }
 
-  setSEOMetadata(seoTitle, seoDesc, `https://newmaharashtragarjana.com/#${topic}`);
+  setSEOMetadata(seoTitle, seoDesc, `https://www.newmaharashtragarjana.com/#${topic}`);
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -2778,7 +2738,7 @@ function closeStaticInfoModal() {
 
   if (CATEGORY_SEO[appState.activeCategory]) {
     const seo = CATEGORY_SEO[appState.activeCategory];
-    setSEOMetadata(seo.title, seo.desc, `https://newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
+    setSEOMetadata(seo.title, seo.desc, `https://www.newmaharashtragarjana.com/${appState.activeCategory !== 'सर्व' ? '#' + appState.activeCategory : ''}`);
   } else {
     setSEOMetadata(DEFAULT_SEO.title, DEFAULT_SEO.desc, DEFAULT_SEO.canonical, DEFAULT_SEO.image);
   }
@@ -2787,6 +2747,7 @@ function closeStaticInfoModal() {
 // ── INITIALIZATION ──
 document.addEventListener('DOMContentLoaded', () => {
   loadStateFromStorage();
+  setupFirebaseAuthListener();
   updateLiveDate();
   updateLiveWeather();
   renderAll();
